@@ -1,0 +1,7 @@
+#!/bin/bash
+
+ybug 192.168.240.253 << EOF
+iptag 1 set . 20001
+app_stop 16
+app_load test_sdp_stream_to_host.aplx . 1-2 16
+EOF

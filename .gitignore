@@ -31,3 +31,27 @@
 # Debug files
 *.dSYM/
 *.su
+
+# Directory lainnya
+**/build
+**/experiment
+**/images
+**/bin
+**/binaries
+**/include
+**/lib
+**/lib64
+**/.idea
+**/refs
+**/local
+**/.metadata
+**/RemoteSystemsTempFiles
+
+# Yang lain
+*.json
+*.pyc
+*.pro.user*
+*.aplx
+*.jpg*
+*.png*
+
