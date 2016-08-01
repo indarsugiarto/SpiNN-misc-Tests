@@ -1,0 +1,64 @@
+--------------------- Measurement 26.07.2016 ----------------------
+# Uses float with io_printf
+THUMB version:
+Non-optimized:
+[11:51:27]-[0,0,1:0] Microseconds for one run through Dhrystone: 40960.0 
+[11:51:27]-[0,0,1:0] Dhrystones per Second:                      32768.0 
+
+Optimized:
+[12:13:41]-[0,0,1:0] Microseconds for one run through Dhrystone: 49152.0 
+[12:13:41]-[0,0,1:0] Dhrystones per Second:                      40960.0 
+
+----------------------------------------------------
+ARM version:
+Optimized:
+[12:33:49]-[0,0,1:0] Microseconds for one run through Dhrystone: 24576.0
+[12:33:49]-[0,0,1:0] Dhrystones per Second:                      32768.0
+
+
+
+---------------------- Measurement 27.07.2016 -------------------------
+# Uses stdfix with io_printf
+THUMB version - optimized:
+[11:49:39]-[0,0,1:0] Microseconds for one run through Dhrystone:   4.7 
+[11:49:39]-[0,0,1:0] Dhrystones per Second                     : 212765 
+[11:49:39]-[0,0,1:0] DMIPS                                     : 121.1 
+
+THUMB version - unoptimized:
+[12:13:01]-[0,0,1:0] Microseconds for one run through Dhrystone:   5.4 
+[12:13:01]-[0,0,1:0] Dhrystones per Second                     : 185185 
+[12:13:01]-[0,0,1:0] DMIPS                                     : 105.4 
+
+ARM version - optimized:
+[12:14:47]-[0,0,1:0] Microseconds for one run through Dhrystone:   4.1 
+[12:14:47]-[0,0,1:0] Dhrystones per Second                     : 243902 
+[12:14:47]-[0,0,1:0] DMIPS                                     : 138.8 
+
+ARM version - unoptimized:
+[12:20:56]-[0,0,1:0] Microseconds for one run through Dhrystone:   4.8 
+[12:20:56]-[0,0,1:0] Dhrystones per Second                     : 208333 
+[12:20:56]-[0,0,1:0] DMIPS                                     : 118.6 
+
+
+---------------------- Measurement 28.07.2026 ------------------------
+# Uses armcc without stdfix.h
+ARM version - unoptimized:
+[11:48:54]-[0,0,1:0] Microseconds for one run through Dhrystone: 4 
+[11:48:54]-[0,0,1:0] Dhrystones per Second                     : 208333 
+[11:48:54]-[0,0,1:0] DMIPS                                     : 118 
+
+ARM version - optimized:
+[11:52:49]-[0,0,1:0] Microseconds for one run through Dhrystone: 4 
+[11:52:49]-[0,0,1:0] Dhrystones per Second                     : 217391 
+[11:52:49]-[0,0,1:0] DMIPS                                     : 123 
+
+THUMB version - optimized:
+[11:54:13]-[0,0,1:0] Microseconds for one run through Dhrystone: 5 
+[11:54:13]-[0,0,1:0] Dhrystones per Second                     : 200000 
+[11:54:13]-[0,0,1:0] DMIPS                                     : 113 
+
+THUMB version - unoptimized:
+[11:56:43]-[0,0,1:0] Microseconds for one run through Dhrystone: 5 
+[11:56:43]-[0,0,1:0] Dhrystones per Second                     : 188679 
+[11:56:43]-[0,0,1:0] DMIPS                                     : 107 
+
