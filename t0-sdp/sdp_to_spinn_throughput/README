@@ -1,0 +1,12 @@
+We want to see the maximum throughput for sending sdp via udp on ethernet.
+Both handshaking and non-handshaking are evaluated.
+
+Once the spiNNaker receives an SDP, it copies the 272-bytes SDP content into its DTCM.
+
+Result:
+- With handshaking:
+  max throughput is almost 800KBps
+- With non-handshaking
+  - delay 1ms ( via time.sleep(0.000001) ) can go up to 5MBps
+  - delay counter 720 can go up to 10MBps
+

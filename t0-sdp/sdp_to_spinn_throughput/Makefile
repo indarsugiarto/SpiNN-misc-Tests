@@ -1,4 +1,4 @@
-APP = test_sdp_stream_to_host
+APP = test_sdp_to_spinn
 
 # First, define SPINN_DIRS and the correct library
 SPINN_DIRS := /opt/spinnaker_tools_134

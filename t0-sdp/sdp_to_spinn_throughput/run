@@ -1,0 +1,6 @@
+#! /bin/bash
+ybug spin3 << EOF
+iptag 1 set . 20001
+app_stop 16
+app_load test_sdp_to_spinn.aplx . 1 16
+EOF
