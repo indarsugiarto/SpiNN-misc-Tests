@@ -24,6 +24,7 @@ def main():
 
       cntr = list()
       total = 0
+      not_272 = 0
       Running = True
       while Running:
           try:
@@ -31,17 +32,20 @@ def main():
              l = len(data)-10	# ignore sdp header
              if l<10:
                  Running = False
-             total += l
-             cntr.append(l)
+             elif l<20:
+                 not_272 += 1
+             else:
+                 total += l
+                 cntr.append(l)
           except KeyboardInterrupt:
              break
       sock.close()
-      print "Total packet = {}, of {} stream".format(total, len(cntr))
+      print "Total packet = {}, of {} stream, and with {} non-272 packet".format(total, len(cntr), not_272)
       #txt = "Press enter to see {} packets".format(len(cntr))
       #_ = raw_input(txt)
       #print "\n"
-      for c in cntr:
-          print "{}".format(c)
+      #for c in cntr:
+      #    print "{}".format(c)
 
 if __name__=='__main__':
     main()

@@ -1,6 +1,6 @@
 #include <spin1_api.h>
 
-#define NUM_OF_STREAM	1000000
+#define NUM_OF_STREAM	100000
 //#define DEF_DEL_VAL	1000 // will result in 5.2MBps
 //#define DEF_DEL_VAL	750  // can go up to 6.4MBps but there was packet lost and bigger SWC error...
 //#define DEF_DEL_VAL	850  // can go with 5.9MBps with a small packet loss and small SWC error...
@@ -13,11 +13,10 @@
 //#define DEF_DEL_VAL	800
 
 /*
- * HASIL:
- *   Sepertinya tidak bisa digunakan untuk multi-core streaming. Karena:
- *   - menghasilkan SWC error yang besar
- *   - kecepatan maximum tidak bertambah (misal, tetap 5.9MBps untuk 2-core
- *     dengan DEF_DEL_VAL 850)
+ * NOTE on Running with several cores:
+ *   - it will produce high SWC error
+ *   - the speed reported by System Monitor is the same as the speed in 1-core scenario
+ *   - Hence, we CANNOT use multicore streaming to achieve higher throughput
  */
 
 sdp_msg_t myMsg;
@@ -58,15 +57,20 @@ void c_main ()
     myMsg.data[i] = i;
 
   // then stream it
-  uint delVal = 0;
+  // NOTE: sark_msg_send return 1 if successful, 0 for failure
+  volatile uint delVal = 0;
+  uint retVal, errCntr = 0; 
   for(i=0; i<NUM_OF_STREAM; i++) {
-    spin1_send_sdp_msg(&myMsg, 10);
+    do {
+      retVal = sark_msg_send(&myMsg, 10);
+      if(retVal==0) errCntr++;
+    } while(retVal==0);
     delVal += giveDelay(DEF_DEL_VAL);
   }
   // finally send EOF packet
   myMsg.length = sizeof(sdp_hdr_t);
   for(i=0; i<10; i++)
     spin1_send_sdp_msg(&myMsg, 10);
-  io_printf(IO_STD, "done with delVal = %u\n\n", delVal);
+  io_printf(IO_STD, "done with errCntr = %u\n\n", errCntr);
 }
 
