@@ -36,7 +36,7 @@
 
 
 # Set if we want full optimization (1) or not (0)
-OPTIM := 0
+OPTIM := 1
 
 
 SPINN_DIRS := /opt/spinnaker_tools_134
@@ -98,7 +98,8 @@ ifeq ($(OPTIM),1)
   CA := $(GP)-gcc -c -O3 -Ofast -mthumb-interwork -march=armv5te -std=gnu99 -I $(INC_DIR)
 else
   #for unoptimized:
-  CA := $(GP)-gcc -c -Os -mthumb-interwork -march=armv5te -std=gnu99 -I $(INC_DIR)
+  #CA := $(GP)-gcc -c -Os -mthumb-interwork -march=armv5te -std=gnu99 -I $(INC_DIR)
+  CA := $(GP)-gcc -c -mthumb-interwork -march=armv5te -std=gnu99 -I $(INC_DIR)
 endif
 
   CT := $(CA) -mthumb -DTHUMB

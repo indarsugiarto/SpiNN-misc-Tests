@@ -25,9 +25,9 @@ THUMB version - optimized:
 [11:49:39]-[0,0,1:0] DMIPS                                     : 121.1 
 
 THUMB version - unoptimized:
-[12:13:01]-[0,0,1:0] Microseconds for one run through Dhrystone:   5.4 
-[12:13:01]-[0,0,1:0] Dhrystones per Second                     : 185185 
-[12:13:01]-[0,0,1:0] DMIPS                                     : 105.4 
+[18:18:43]-[0,0,1:0] Microseconds for one run through Dhrystone:  10.8 
+[18:18:43]-[0,0,1:0] Dhrystones per Second                     : 92592 
+[18:18:43]-[0,0,1:0] DMIPS                                     :  52.7 
 
 ARM version - optimized:
 [12:14:47]-[0,0,1:0] Microseconds for one run through Dhrystone:   4.1 
@@ -35,9 +35,9 @@ ARM version - optimized:
 [12:14:47]-[0,0,1:0] DMIPS                                     : 138.8 
 
 ARM version - unoptimized:
-[12:20:56]-[0,0,1:0] Microseconds for one run through Dhrystone:   4.8 
-[12:20:56]-[0,0,1:0] Dhrystones per Second                     : 208333 
-[12:20:56]-[0,0,1:0] DMIPS                                     : 118.6 
+[18:21:01]-[0,0,1:0] Microseconds for one run through Dhrystone:   9.9 
+[18:21:01]-[0,0,1:0] Dhrystones per Second                     : 101010 
+[18:21:01]-[0,0,1:0] DMIPS                                     :  57.5 
 
 
 ---------------------- Measurement 28.07.2026 ------------------------
