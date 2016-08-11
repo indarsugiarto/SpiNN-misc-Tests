@@ -21,27 +21,31 @@
 
 volatile float fResult = 0.0;
 volatile REAL kResult = 0.0;
-volatile float N1, N2, N3, N4;
+volatile uint iResult = 0;
+volatile float F1, F2, F3, F4;
 volatile REAL K1, K2, K3, K4;
+volatile uint I1, I2, I3, I4;
 int i;
 
 float freq = 200.0;
 
+// emulated float operation
 float fCompute()
 {
   for(i=0; i<MAX_ITER; i++) {
-    fResult += N1;
-    fResult -= N2;
-    fResult *= N3;
-    fResult /= N4;
-    fResult += N2;
-    fResult -= N1;
-    fResult *= N4;
-    fResult /= N3;
+    fResult += F1;
+    fResult -= F2;
+    fResult *= F3;
+    fResult /= F4;
+    fResult += F2;
+    fResult -= F1;
+    fResult *= F4;
+    fResult /= F3;
   }
   return fResult;
 }
 
+// standard fixed point operation
 REAL sCompute()
 {
   for(i=0; i<MAX_ITER; i++) {
@@ -57,36 +61,85 @@ REAL sCompute()
   return kResult;
 }
 
+// integer operation
+uint iCompute()
+{
+  for(i=0; i<MAX_ITER; i++) {
+    iResult += I1; 
+    iResult -= I2; 
+    iResult *= I3; 
+    iResult /= I4; 
+    iResult += I4; 
+    iResult -= I3; 
+    iResult *= I1; 
+    iResult /= I2; 
+  }
+  return iResult;
+}
+
 
 void c_main ()
 {
-  N1 = 3.19; K1 = N1;
-  N2 = 2.91; K2 = N2;
-  N3 = 2.01; K3 = N3;
-  N4 = 1.97; K4 = N4;
+  F1 = 3.19; K1 = F1; I1 = 4;
+  F2 = 2.91; K2 = F2; I2 = 3;
+  F3 = 2.01; K3 = F3; I3 = 2;
+  F4 = 1.97; K4 = F4; I4 = 1;
 
-  uint t1_clk, t2_clk;
-  float t1_us, t2_us;
+  uint t1_clk, t2_clk, t3_clk;
+  float t1_us, t2_us, t1_s, t2_s;
   float mopus1, mopus2; // million operation per microsecond
+
+  float fResult;
+  REAL kResult;
+  uint iResult;
 
   ENABLE_TIMER();
 
-  io_printf(IO_STD, "\n\nRunning floating point operation %u-times\n", MAX_ITER);
+  /*--------------------- Floating point ------------------*/
+  io_printf(IO_STD, "\n\nRunning %u floating point operation:\n", MAX_ITER*8);
 
   START_TIMER();
-  fCompute();
+  fResult = fCompute();
   t1_clk = READ_TIMER();
   t1_us = ((float)t1_clk / freq);
-  mopus1 = 8 / t1_us;
-  io_printf(IO_STD, "MFLOPS = %5.2k\n", (REAL)mopus1);
+  mopus1 = t1_us;
+  mopus1 = (MAX_ITER*8*1000000)/t1_us;
+  //io_printf(IO_STD, "t1_clk = %u, MFLOPS = %5.2k\n", t1_clk, (REAL)mopus1);
+  io_printf(IO_STD, "t1_clk = %u, with final value = %k\n", t1_clk, (REAL)fResult);
 
-  io_printf(IO_STD, "\n\nRunning fixed point operation %u-times\n", MAX_ITER);
+
+
+  sark_delay_us(1000000);
+
+
+
+
+
+  /*---------------------- Fixed point -------------------*/
+  io_printf(IO_STD, "\n\nRunning %u fixed point operation:\n", MAX_ITER*8);
 
   START_TIMER();
-  sCompute();
+  kResult = sCompute();
   t2_clk = READ_TIMER();
   t2_us = ((float)t2_clk / freq);
-  mopus2 = 8 / t2_us;
-  io_printf(IO_STD, "MFLOPS = %5.2k\n", (REAL)mopus2);
+  mopus2 = t2_us;
+  //io_printf(IO_STD, "t2_clk = %u, MFLOPS = %5.2k\n", t2_clk, (REAL)mopus2);
+  io_printf(IO_STD, "t2_clk = %u, with final value = %k\n", t2_clk, kResult);
+
+
+
+  sark_delay_us(1000000);
+
+
+
+
+
+  /*----------------------- integer  ---------------------*/
+  io_printf(IO_STD, "\n\nRunning %u integer operation:\n", MAX_ITER*8);
+
+  START_TIMER();
+  iResult = iCompute();
+  t3_clk = READ_TIMER();
+  io_printf(IO_STD, "t3_clk = %u, with final value = %u\n", t3_clk, iResult);
 }
 
