@@ -1,0 +1,19 @@
+I got strange result. It seems the floating point operation is faster than the stdfix
+operation.
+
+#Using -Os
+[15:57:37]-[0,0,1:0] Running only floating point operation!
+[15:57:40]-[0,0,1:0] Total operation = 9364342, tclk = 199999999, final result = 6551.875488
+
+#Using -O3
+[16:00:40]-[0,0,1:0] Running only floating point operation!
+[16:00:43]-[0,0,1:0] Total operation = 9401030, tclk = 200000000, final result = 6577.535156
+
+#Using -Os
+[16:29:51]-[0,0,1:0] Running only stdfix operation!
+[16:29:54]-[0,0,1:0] Total operation = 2572.396*10^3, tclk = 199999999, final result = 919.839020
+
+#Using -O3
+[16:29:16]-[0,0,1:0] Running only stdfix operation!
+[16:29:19]-[0,0,1:0] Total operation = 2575.141*10^3, tclk = 200000000, final result = 920.817322
+

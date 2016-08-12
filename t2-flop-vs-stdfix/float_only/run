@@ -1,0 +1,6 @@
+#!/bin/bash
+
+ybug 192.168.240.253 << EOF
+app_stop 16
+app_load flop_vs_stdfix.aplx . 1 16
+EOF
