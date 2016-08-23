@@ -1,13 +1,13 @@
 #include <spin1_api.h>
 #include <stdfix.h>
 
-#define REAL	accum
+#define REAL			accum
+#define REAL_CONST(x)	x##k
 
-#define MAX_ITER 1000000
+#define MAX_ITER 1000
 
 // Use "timer2" to measure elapsed time.
 // Times up to around 10 sec should be OK.
-
 
 // Enable timer - free running, 32-bit
 #define ENABLE_TIMER() tc[T2_CONTROL] = 0x82
@@ -27,7 +27,8 @@ volatile REAL K1, K2, K3, K4;
 volatile uint I1, I2, I3, I4;
 int i;
 
-float freq = 200.0;
+// NOTE: we may use the profiler to change the frequency:
+float freq = 200.0;		// but in standard run, it should be the same with sv->clk
 
 // emulated float operation
 float fCompute()
@@ -80,14 +81,16 @@ uint iCompute()
 
 void c_main ()
 {
-  F1 = 3.19; K1 = F1; I1 = 4;
-  F2 = 2.91; K2 = F2; I2 = 3;
-  F3 = 2.01; K3 = F3; I3 = 2;
-  F4 = 1.97; K4 = F4; I4 = 1;
+  // define constant values
+  F1 = 3.19; K1 = REAL_CONST(3.19); I1 = 4;
+  F2 = 2.91; K2 = REAL_CONST(2.91); I2 = 3;
+  F3 = 2.01; K3 = REAL_CONST(2.01); I3 = 2;
+  F4 = 1.97; K4 = REAL_CONST(1.97); I4 = 1;
 
-  uint t1_clk, t2_clk, t3_clk;
-  float t1_us, t2_us, t1_s, t2_s;
-  float mopus1, mopus2; // million operation per microsecond
+  // measurement variable
+  uint t1_clk, t2_clk, t3_clk;				// in clock tick
+  float t1_us, t2_us, t3_us, t1_s, t2_s;	// in microsecond and second
+  float mopus1, mopus2; 					// million operation per microsecond
 
   float fResult;
   REAL kResult;
@@ -104,13 +107,13 @@ void c_main ()
   t1_us = ((float)t1_clk / freq);
   mopus1 = t1_us;
   mopus1 = (MAX_ITER*8*1000000)/t1_us;
+  // we convert float to stdfix because io_printf() has problem with float number
   //io_printf(IO_STD, "t1_clk = %u, MFLOPS = %5.2k\n", t1_clk, (REAL)mopus1);
-  io_printf(IO_STD, "t1_clk = %u, with final value = %k\n", t1_clk, (REAL)fResult);
+  io_printf(IO_STD, "elapse = %u-clock (%6.1k-us), with final value = %k\n", t1_clk, (REAL)t1_us, (REAL)fResult);
 
 
-
+  // wait 1s
   sark_delay_us(1000000);
-
 
 
 
@@ -124,10 +127,11 @@ void c_main ()
   t2_us = ((float)t2_clk / freq);
   mopus2 = t2_us;
   //io_printf(IO_STD, "t2_clk = %u, MFLOPS = %5.2k\n", t2_clk, (REAL)mopus2);
-  io_printf(IO_STD, "t2_clk = %u, with final value = %k\n", t2_clk, kResult);
+  io_printf(IO_STD, "elapse = %u-clock (%6.1k-us), with final value = %k\n", t2_clk, (REAL)t2_us, kResult);
 
 
 
+  // wait 1s
   sark_delay_us(1000000);
 
 
@@ -140,6 +144,7 @@ void c_main ()
   START_TIMER();
   iResult = iCompute();
   t3_clk = READ_TIMER();
-  io_printf(IO_STD, "t3_clk = %u, with final value = %u\n", t3_clk, iResult);
+  t3_us = ((float)t3_clk / freq);
+  io_printf(IO_STD, "elapse = %u-clock (%6.1k-us), with final value = %u\n", t3_clk, (REAL)t3_us, iResult);
 }
 
