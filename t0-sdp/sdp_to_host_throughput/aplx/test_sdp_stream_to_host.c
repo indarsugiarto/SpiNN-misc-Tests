@@ -6,7 +6,20 @@
 //#define DEF_DEL_VAL	850  // can go with 5.9MBps with a small packet loss and small SWC error...
 //#define DEF_DEL_VAL	800  // can go with 6.1MBps but with many packet lost and big SWC error
 
-#define DEF_DEL_VAL 	900  // perfect, up to 5.7MBps
+
+//#define DEF_DEL_VAL 	900  // perfect, up to 5.7MBps
+
+// Let's try for other chip:
+#define DEF_DEL_VAL		6000	// OK, no SWC error, 1.1MBps
+//#define DEF_DEL_VAL		5500	// OK, small SWC, 1.2MBps
+//#define DEF_DEL_VAL		5000	// OK, small SWC, 1.3MBps
+//#define DEF_DEL_VAL		4000	// OK, with medium-size SWC error (~1000), 1.6MBps
+//#define DEF_DEL_VAL 	3500  // if previously has big SWC, it can be used up 940KiBps/s, but if newly started, then--> error: error RC_P2P_NOREPLY
+//#define DEF_DEL_VAL 	2500  // if previously has big SWC, it can be used up 1.2MBps/s, but if newly started, then--> error: error RC_P2P_NOREPLY
+//#define DEF_DEL_VAL 	1500  // if previously has big SWC, it can be used up 1.3MBps/s, but if newly started, then--> error: error RC_P2P_NOREPLY
+//#define DEF_DEL_VAL 	1000  // if previously has big SWC, it can be used up 1.3MBps/s, but if newly started, then--> error: error RC_P2P_NOREPLY
+
+
 
 // Using qt/c++ to receive packets:
 // still, got missing packet and SWC error...
@@ -39,7 +52,7 @@ void c_main ()
   myCore = sark_core_id();
   sark_delay_us(myCore*10);
 
-  io_printf(IO_STD, "\n\nTest bursting %d sdp packet to host...\n", NUM_OF_STREAM);
+  io_printf(IO_STD, "\n\nTest bursting %d packet to host (DEF_DEL_VAL = %d)...\n", NUM_OF_STREAM, DEF_DEL_VAL);
   sark_delay_us(1000000);
 
   // init myMsg
@@ -71,6 +84,7 @@ void c_main ()
   myMsg.length = sizeof(sdp_hdr_t);
   for(i=0; i<10; i++)
     spin1_send_sdp_msg(&myMsg, 10);
+  sark_delay_us(10000);
   io_printf(IO_STD, "done with errCntr = %u\n\n", errCntr);
 }
 

@@ -1,3 +1,6 @@
+/* NOTE: It seems that the division operation in stdfix is very slow!
+ *       Without division, the fixed point operation is faster than floating point!
+ */
 #include <spin1_api.h>
 #include <stdfix.h>
 
@@ -18,6 +21,7 @@
 // Read timer and compute time (microseconds)
 #define READ_TIMER() (0 - tc[T2_COUNT])
 
+#define N_OPS	8
 
 volatile float fResult = 0.0;
 volatile REAL kResult = 0.0;
@@ -99,14 +103,14 @@ void c_main ()
   ENABLE_TIMER();
 
   /*--------------------- Floating point ------------------*/
-  io_printf(IO_STD, "\n\nRunning %u floating point operation:\n", MAX_ITER*8);
+  io_printf(IO_STD, "\n\nRunning %u floating point operation:\n", MAX_ITER*N_OPS);
 
   START_TIMER();
   fResult = fCompute();
   t1_clk = READ_TIMER();
   t1_us = ((float)t1_clk / freq);
   mopus1 = t1_us;
-  mopus1 = (MAX_ITER*8*1000000)/t1_us;
+  mopus1 = (MAX_ITER*N_OPS*1000000)/t1_us;
   // we convert float to stdfix because io_printf() has problem with float number
   //io_printf(IO_STD, "t1_clk = %u, MFLOPS = %5.2k\n", t1_clk, (REAL)mopus1);
   io_printf(IO_STD, "elapse = %u-clock (%6.1k-us), with final value = %k\n", t1_clk, (REAL)t1_us, (REAL)fResult);
@@ -119,7 +123,7 @@ void c_main ()
 
 
   /*---------------------- Fixed point -------------------*/
-  io_printf(IO_STD, "\n\nRunning %u fixed point operation:\n", MAX_ITER*8);
+  io_printf(IO_STD, "\n\nRunning %u fixed point operation:\n", MAX_ITER*N_OPS);
 
   START_TIMER();
   kResult = sCompute();
@@ -139,7 +143,7 @@ void c_main ()
 
 
   /*----------------------- integer  ---------------------*/
-  io_printf(IO_STD, "\n\nRunning %u integer operation:\n", MAX_ITER*8);
+  io_printf(IO_STD, "\n\nRunning %u integer operation:\n", MAX_ITER*N_OPS);
 
   START_TIMER();
   iResult = iCompute();

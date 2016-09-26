@@ -4,10 +4,17 @@ the maximum throughput is about 5.7MiB per second.
 Also, it seems that using that bandwidth, no packet drop/loss during transmission
 (i.e., the whole 272 bytes are received correctly).
 
+!!!!!! HOWEVER, IT ONLY WORKS FOR CHIP 0,0 !!!!!!!
+
 If we push higher, then:
 - sark/scamp will raise SCW error
 - there will be packets missing during udp transmission
 
 Also, using more than 1 core to stream sdp at the same time will produce
 big SWC error while the throughput seems to be the same (i.e., no improvement).
+
+--------------------------------------------------------------------------------
+
+When using other chip than <0,0>, then the max throughput (without SWC error)
+is 1.1MiB per second.
 
