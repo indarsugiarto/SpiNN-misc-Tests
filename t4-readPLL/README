@@ -1,0 +1,2 @@
+This project is intended to read the PLL information of a chip. 
+This will be useful for simple querying cpu's frequency.
