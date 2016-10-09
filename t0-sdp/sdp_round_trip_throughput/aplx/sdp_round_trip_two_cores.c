@@ -8,9 +8,9 @@
 
 
 //#define DEF_DEL_VAL 	900  // perfect, up to 5.7MBps
-#define DEF_DEL_VAL 	500  // big SWC
+
 // Let's try for other chip:
-//#define DEF_DEL_VAL		6000	// OK, no SWC error, 1.1MBps
+#define DEF_DEL_VAL		6000	// OK, no SWC error, 1.1MBps
 //#define DEF_DEL_VAL		5500	// OK, small SWC, 1.2MBps
 //#define DEF_DEL_VAL		5000	// OK, small SWC, 1.3MBps
 //#define DEF_DEL_VAL		4000	// OK, with medium-size SWC error (~1000), 1.6MBps
@@ -32,9 +32,39 @@
  *   - Hence, we CANNOT use multicore streaming to achieve higher throughput
  */
 
-sdp_msg_t myMsg;
 uint myCore;
-ushort pktCntr = 1;
+ushort pktCntr = 0;
+uint fr_dest = 1 << 8; // goes to core-2
+uchar core2_triggered = FALSE;
+
+uchar buf[272];
+
+void terminate(uint arg0, uint arg1)
+{
+    io_printf(IO_STD, "Received -%d packets!\n", pktCntr);
+    spin1_exit(0);
+}
+
+void hSDP(uint mBox, uint port)
+{
+    sdp_msg_t *msg = (sdp_msg_t *)mBox;
+    if(port==7)
+        spin1_schedule_callback(terminate, 0, 0, 1);
+    else {
+        pktCntr++;
+
+        // then tell core-2 via FR to start its own thread
+        if(core2_triggered==FALSE) {
+            spin1_send_fr_packet(0x12345678, 0, NO_PAYLOAD);
+            core2_triggered=TRUE;
+        }
+
+        // then copy the content
+        sark_mem_cpy((void *)buf, (void *)&msg->cmd_rc, 272);
+    }
+
+    spin1_msg_free(msg);
+}
 
 volatile uint giveDelay(uint delVal)
 {
@@ -47,21 +77,16 @@ volatile uint giveDelay(uint delVal)
   return dummy;
 }
 
-void c_main ()
+void hFR(uint key, uint payload)
 {
-  myCore = sark_core_id();
-  sark_delay_us(myCore*10);
+  sdp_msg_t myMsg;
 
-  io_printf(IO_STD, "\n\nTest bursting %d packet to host (DEF_DEL_VAL = %d)...\n", NUM_OF_STREAM, DEF_DEL_VAL);
-  sark_delay_us(1000000);
-
-  // init myMsg
   uint i;
   myMsg.flags = 0x07;	// without reply
-  myMsg.tag = 1;	// send internally, no need for iptag
+  myMsg.tag = 1;	
   myMsg.dest_port = PORT_ETH;	// send to core-2 on port-2
   myMsg.dest_addr = sv->eth_addr;
-  myMsg.srce_port = (1 << 5) + myCore;	// send from core-1 on port-1
+  myMsg.srce_port = (1 << 5) + myCore;	// send from core-2 on port-1
   myMsg.srce_addr = sv->p2p_addr;
   myMsg.cmd_rc = myCore;
   myMsg.seq = myCore;
@@ -82,12 +107,26 @@ void c_main ()
   }
   // finally send EOF packet
   myMsg.length = sizeof(sdp_hdr_t);
-  for(i=0; i<10; i++) {
-    do {
-      retVal = sark_msg_send(&myMsg, 10);
-    } while(retVal==0);
-  }
+  for(i=0; i<10; i++)
+    spin1_send_sdp_msg(&myMsg, 10);
   sark_delay_us(10000);
-  io_printf(IO_STD, "done with errCntr = %u\n\n", errCntr);
+  io_printf(IO_STD, "Core-2 done with errCntr = %u\n\n", errCntr);
+
+}
+
+void c_main ()
+{
+  myCore = sark_core_id();
+  rtr_fr_set(fr_dest);
+
+  io_printf(IO_STD, "\n\nTest sdp round trip from/to host (without DEF_DEL_VAL). Make sure the iptag-1 is set!!!\n");
+
+  if(myCore==1) {
+    spin1_callback_on(SDP_PACKET_RX, hSDP, -1);
+  }
+  else {
+    spin1_callback_on(FR_PACKET_RECEIVED, hFR, -1);
+  }
+  spin1_start(SYNC_NOWAIT);
 }
 

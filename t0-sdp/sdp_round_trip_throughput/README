@@ -1,0 +1,14 @@
+Let's try to send and receive at the same time.
+
+There are two experiments:
+- experiment-1: spinn (core-1) receives sdp and send the reply directly
+- experiment-2: spinn (core-1) receives an sdp and trigger core-2 to start streaming sdp to host 
+
+Note: 
+- in both case, we use iptag-1 and use sdp port-7 to stop core-1
+- use sendSDP.py for sending SDPs from host-PC to spinn
+- use qt/pkt_length_cntr to receives SDPs from spinn
+
+Results
+=============================================================================================
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+ybug spin3 << EOF
+app_load sdp_round_trip_two_cores.aplx . 1-2 16
+EOF
