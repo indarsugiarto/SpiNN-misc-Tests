@@ -1,0 +1,103 @@
+# Put the correct SPINN and GNU toolchain here:
+
+# SPINN_DIRS := /opt/spinnaker_tools_134
+# GNU_DIRS   := /opt/arm-2013.05/bin
+# SCRIPT  := $(LIB_DIR)/sark.lnk
+
+SPINN_DIRS  := /opt/spinnaker_tools_3.0.1
+GNU_DIRS    := /opt/gcc-arm-none-eabi-5_4-2016q3/bin
+SCRIPT      := $(SPINN_DIRS)/tools/sark.lnk
+
+SPINN_TOOLS := $(SPINN_DIRS)/tools
+LIB_DIR     := $(SPINN_DIRS)/lib
+INC_DIR     := $(SPINN_DIRS)/include
+
+LIBRARY     := $(LIB_DIR)/libspin1_api.a
+BUILD_DIR   := ../build/
+OUTPUT_DIR  := ../binaries/
+SRC_DIR     := ../src/
+
+#-------------------------------------------------------------------------------
+
+# Set up the various compile/link options for GNU tools
+OSPACE	:= -Os
+OTIME	:= -O3 -Ofast #-Ofast
+
+GP      := $(GNU_DIRS)/arm-none-eabi
+AS      := $(GP)-as --defsym GNU=1 -mthumb-interwork -march=armv5te
+CA      := $(GP)-gcc -c $(OTIME) -mthumb-interwork -march=armv5te -std=gnu99 -I $(INC_DIR)
+CT      := $(CA) -mthumb -DTHUMB
+#LD      := $(GP)-gcc -T$(SCRIPT) -Wl,-e,cpu_reset -Wl,--gc-sections -Wl,--use-blx
+LD      := $(GP)-gcc -T$(SCRIPT) -Wl,-e,cpu_reset -Wl,-static -fdata-sections -ffunction-sections -Wl,--gc-sections -Wl,--use-blx -nostartfiles -static
+AR      := $(GP)-ar -rcs
+OC      := $(GP)-objcopy
+OD      := $(GP)-objdump -dxt > $(BUILD_DIR)$(APP).txt
+NM      := $(GP)-nm
+CC      := $(CT)
+CAT     := cat
+RM      := rm -f
+LS      := ls -l
+MKDIR   := mkdir -p
+CP      := cp -rf
+CD      := cd
+
+#-------------------------------------------------------------------------------
+
+
+# Primary target is an APLX file - built from the ELF
+$(APP).aplx: prep_dir prep_obj $(APP).bin $(APP).nm
+	$(OC) -O binary -j RO_DATA $(BUILD_DIR)$(APP).elf $(BUILD_DIR)RO_DATA.bin
+	$(OC) -O binary -j RW_DATA $(BUILD_DIR)$(APP).elf $(BUILD_DIR)RW_DATA.bin
+	$(SPINN_TOOLS)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin > $(BUILD_DIR)$(APP).bin
+	$(SPINN_TOOLS)/mkaplx $(BUILD_DIR)$(APP).nm | $(CAT) - $(BUILD_DIR)$(APP).bin > $(BUILD_DIR)$(APP).aplx
+	@echo "[FINAL] Copying the APLXs to the output directory..."
+	@$(CP) $(BUILD_DIR)$(APP).aplx $(OUTPUT_DIR)
+	@$(LS) $(OUTPUT_DIR)$(APP).aplx
+	@echo "-------------------- Building project" $(APP) "done! --------------------------"
+	@echo
+
+# Create a list of the objects in the file using nm
+$(APP).nm: $(APP).elf
+	$(NM) $(BUILD_DIR)$< > $(BUILD_DIR)$@
+
+# Create a binary file which is the concatenation of RO and RW sections
+$(APP).bin: $(APP).elf
+	$(OC) -O binary -j RO_DATA $(BUILD_DIR)$(APP).elf $(BUILD_DIR)RO_DATA.bin
+	$(OC) -O binary -j RW_DATA $(BUILD_DIR)$(APP).elf $(BUILD_DIR)RW_DATA.bin
+	$(SPINN_TOOLS)/mkbin $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin > $(BUILD_DIR)$@
+	$(RM) $(BUILD_DIR)RO_DATA.bin $(BUILD_DIR)RW_DATA.bin
+
+# Build the ELF file
+#$(APP).elf: $(OBJECTS) $(SCRIPT) $(LIBRARY)
+$(APP).elf: $(SCRIPT) $(LIBRARY)
+	$(SPINN_TOOLS)/mkbuild $(APP) > $(BUILD_DIR)sark_build.c
+	$(CC) $(BUILD_DIR)sark_build.c -o $(BUILD_DIR)sark_build.o
+	$(LD) $(LFLAGS) $(addprefix $(BUILD_DIR),$(OBJECTS)) $(BUILD_DIR)sark_build.o $(LIBRARY) -o $(BUILD_DIR)$(APP).elf
+	$(OD) $(BUILD_DIR)$(APP).elf
+
+
+
+# Build object files
+SRC_FILES = $(patsubst %.o,%.c,$(OBJECTS))
+
+#.ONESHELL:
+prep_obj:
+	@echo -n "[BUILD] Compiling source file: "
+	@echo $(SRC_FILES)
+	cd $(BUILD_DIR) && for dir in $(SRC_FILES); do $(CC) $(CFLAGS) $(SRC_DIR)$$dir; done &&	cd $(SRC_DIR)
+#	for dir in $(SRC_FILES); do $(CC) $(CFLAGS) $$dir -o $(BUILD_DIR)$(subst %.c,%.o,$$dir); done
+#	for dir in $(SRC_FILES); do echo $(SRC_DIR)$$dir; done
+
+# Other thing todo...
+prep_dir:
+	@$(MKDIR) $(BUILD_DIR)
+	@$(MKDIR) $(OUTPUT_DIR)
+
+# Tidy and cleaning dependencies
+tidy:
+	$(RM) $(OBJECTS) $(APP).elf $(APP).txt
+clean:
+	@$(RM) $(BUILD_DIR)*
+	@$(RM) $(OUTPUT_DIR)$(APP).aplx
+
+#-------------------------------------------------------------------------------

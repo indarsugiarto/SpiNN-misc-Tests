@@ -1,0 +1,7 @@
+# Output target name
+APP := profiler
+
+# List of objects making up the application.
+OBJECTS := $(APP).o
+
+include Makefile.common

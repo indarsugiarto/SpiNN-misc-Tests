@@ -1,0 +1,2 @@
+#!/bin/bash
+scp pi@pi-adhoc:/home/pi/Projects/readT.c/qReadT.withTCP/src/* ./

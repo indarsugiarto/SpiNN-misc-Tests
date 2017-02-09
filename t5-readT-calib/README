@@ -1,0 +1,6 @@
+The file readTcalib.py is the main program file thats provide a GUI interface
+for profiling the SpiNNaker temperature sensor.
+There are three directory programs in this project:
+aplx --> SpiNNaker program that reads sensor temperature and sends it to host-PC
+qReadT.withTCP --> raspberry-pi program that reads external sensors
+QtForms --> contains python modules used by readTcalib.py
