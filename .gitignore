@@ -35,6 +35,7 @@
 # Directory lainnya
 **/build
 **/experiment
+**/experiments
 **/images
 **/bin
 #**/binaries

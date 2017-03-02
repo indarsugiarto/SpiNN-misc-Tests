@@ -30,19 +30,20 @@ class wSpiNN(QtGui.QWidget):
     # The following signals MUST defined here, NOT in the init()
     # spinUpdate = QtCore.pyqtSignal('QByteArray')  # for streaming data to the plotter/calibrator
     spinUpdate = QtCore.pyqtSignal(list)
-    isReady = None
+    spinChipID = QtCore.pyqtSignal(list)
+    isReady = False
 
     okToClose = False
 
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        # create and initialize the UDP socket for this module
-        self.SpiNNSock = QtNetwork.QUdpSocket(self)
-        self.initSpiNNSock(DEF.RECV_PORT)
-        
         self.console = QtGui.QPlainTextEdit(self)
-
+        """
+        Note on QPlainTextEdit:
+        When using appendPlainText, endl will automatically added; whereas in insertPlainText,
+        endl will not be added!
+        """
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(QtGui.QColor(255,255,255,255))
         brush.setStyle(Qt.Qt.SolidPattern)
@@ -61,9 +62,13 @@ class wSpiNN(QtGui.QWidget):
         x = self.x()
         y = self.y()
         w = 400
-        h = 1000
+        h = 600
         self.setGeometry(x, y, w, h)
 
+        # create and initialize the UDP socket for this module
+        self.SpiNNSock = QtNetwork.QUdpSocket(self)
+        self.initSpiNNSock(DEF.RECV_PORT)
+        
     def paintEvent(self, e):
         w = self.width()
         h = self.height()
@@ -71,42 +76,56 @@ class wSpiNN(QtGui.QWidget):
         self.console.setMinimumSize(w, h)        
 
     def initSpiNNSock(self, port):
-        print "Try opening port-{} for receiving SpiNNaker Data...".format(port),
+        str = "Try opening port-{} for receiving SpiNNaker Data...".format(port)
+        print str,
+        self.console.appendPlainText(str)
         #result = self.sock.bind(QtNetwork.QHostAddress.LocalHost, DEF.RECV_PORT) 
         #         --> problematik dgn QHostAddress.LocalHost !!!
         result = self.SpiNNSock.bind(port)
         if result is False:
-            print 'failed! Cannot open UDP port-{}'.format(port)
-            isReady = False
+            str = 'failed! Cannot open UDP port-{}'.format(port)
+            print str
+            self.console.appendPlainText(str)
+            self.isReady = False
         else:
-            print "done!"
-            isReady = True
+            str = "done!"
+            print str
+            self.console.appendPlainText(str)
+            self.isReady = True
             self.SpiNNSock.readyRead.connect(self.readSpiNN)
     
     @QtCore.pyqtSlot()   
     def readSpiNN(self):
         """
-            The following format is used by the SpiNNaker 
+            The following format is used by the SpiNNaker profiler 111
             fmt = "<H4BH2B2H3I18I"
             pad, flags, tag, dp, sp, da, say, sax, cmd, freq, temp1, temp2, temp3, \
             cpu0, cpu1, cpu2, cpu3, cpu4, cpu5, cpu6, cpu7, cpu8, cpu9, cpu10, \
             cpu11, cpu12, cpu13, cpu14, cpu15, cpu16, cpu17 = struct.unpack(fmt, datagram)
+
+            For the profiler 222, the simplified version is used:
+            fmt = "<H4BH2B2H3I"
+            pad, flags, tag, dp, sp, da, say, sax, \
+            cmd, freq, temp1, temp2, temp3 = struct.unpack(fmt, datagram)
         """
 
         while self.SpiNNSock.hasPendingDatagrams():
             szData = self.SpiNNSock.pendingDatagramSize()
             datagram, host, port = self.SpiNNSock.readDatagram(szData)
         
-            fmt = "<H4BH2B2H3I18I"
-            pad, flags, tag, dp, sp, da, say, sax, cmd, freq, temp1, temp2, temp3, \
-            cpu0, cpu1, cpu2, cpu3, cpu4, cpu5, cpu6, cpu7, cpu8, cpu9, cpu10, \
-            cpu11, cpu12, cpu13, cpu14, cpu15, cpu16, cpu17 = struct.unpack(fmt, datagram)
+            fmt = "<H4BH2B2H3I"
+            pad, flags, tag, dp, sp, da, say, sax, \
+            cmd, freq, temp1, temp2, temp3 = struct.unpack(fmt, datagram)
 
             # Dump the raw data on its display widget
-            str = "[%d,%d] %d,%d,%d" % (sax,say,temp1,temp2,temp3)        
-            self.console.insertPlainText(str)
+            str = "[%d,%d] %d,%d,%d @%dMHz" % (sax,say,temp1,temp2,temp3,freq)
+            self.console.appendPlainText(str)
 
             chipIdx = self.getChipID(sax, say)
+            # emit chipID configuration: useful for debugging
+            chipIdxInfo = [chipIdx, sax, say]
+            self.spinChipID.emit(chipIdxInfo)
+
             tempVal = [chipIdx, temp1, temp2, temp3]
             self.spinUpdate.emit(tempVal)
             # self.spinUpdate.emit(something) -> old version uses QByteArray!!!

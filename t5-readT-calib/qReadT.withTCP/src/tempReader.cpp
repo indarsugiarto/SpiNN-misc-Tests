@@ -17,13 +17,13 @@ void tempReader::run()
     QString sFile;
     switch(myID) {
     case 1:
-        sFile = "/sys/bus/w1/devices/28-000007a08e92/w1_slave"; break;
-    case 2:
         sFile = "/sys/bus/w1/devices/28-000007a0b647/w1_slave"; break;
+    case 2:
+        sFile = "/sys/bus/w1/devices/28-000007a08e92/w1_slave"; break;
     case 3:
-        sFile = "/sys/bus/w1/devices/28-000007a0bd43/w1_slave"; break;
-    case 4:
         sFile = "/sys/bus/w1/devices/28-000007a1dda4/w1_slave"; break;
+    case 4:
+        sFile = "/sys/bus/w1/devices/28-000007a0bd43/w1_slave"; break;
     }
 
     isRunning = true;
@@ -48,6 +48,9 @@ void tempReader::run()
             // qDebug() << lst.at(1);
             myT = lst.at(1).toInt();
             emit newTval(myID, myT);
+            // What sensor I'm working with
+            // qDebug() << QString("Sensor-%1: %2").arg(myID).arg(myT/1000.0,0,'g',4,'0');
+
         }
 
       // number of iteration is reached?

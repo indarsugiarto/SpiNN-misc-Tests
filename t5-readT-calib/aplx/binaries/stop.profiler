@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ybug 192.168.240.253 << EOF
+app_stop 255
+EOF

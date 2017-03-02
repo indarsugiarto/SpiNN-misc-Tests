@@ -55,7 +55,7 @@ class wRaspi(QtGui.QWidget):
         x = self.x()
         y = self.y()
         w = 400
-        h = 1000
+        h = 600
         self.setGeometry(x, y, w, h)
 
         # Create a socket and initiate a connection to Pi3 server
@@ -75,11 +75,11 @@ class wRaspi(QtGui.QWidget):
 
     def connected(self):
         print "connected!"
-        isReady = True
+        self.isReady = True
 
     def disconnected(self):
         print "disconnected! Restart the system!!!"
-        isReady = False;
+        self.isReady = False;
 
     def displayError(self, socketError):
         if socketError == QtNetwork.QAbstractSocket.RemoteHostClosedError:
@@ -94,7 +94,7 @@ class wRaspi(QtGui.QWidget):
         else:
             str = "The following error occurred: %s." % self.raspiSock.errorString()
   
-        self.console.insertPlainText(str)
+        self.console.appendPlainText(str)
 
     def initRaspiSock(self, addr, port):
         print "Try to connect to Pi3 server at {}:{} ...".format(addr, port),
@@ -121,7 +121,7 @@ class wRaspi(QtGui.QWidget):
             return
         """
         Tdata = instr.readLine()
-        self.console.insertPlainText(Tdata + "\n")
+        self.console.appendPlainText(Tdata)
 
         splt = Tdata.split(",")
         Tval = list()
@@ -134,7 +134,7 @@ class wRaspi(QtGui.QWidget):
 
     def closeEvent(self, event):
         if self.okToClose:
-            if isReady is True:
+            if self.isReady is True:
                 self.raspiSock.disconnectFromHost()
             event.accept()
         else:

@@ -1,11 +1,22 @@
 /*
  TODO: validasi mapping ini:
- chip<0,0> --> R1
- chip<1,0> --> R2
- chip<0,1> --> R3
- chip<1,1> --> R4
+ chip<0,0> --> R1, yang berarti ID_R1==1
+ chip<1,0> --> R2, yang berarti ID_R2==2
+ chip<0,1> --> R3, yang berarti ID_R3==3
+ chip<1,1> --> R4, yang berarti ID_R4==4
+
+ Ternyata yang benar adalah:
+ chip<0,0> --> R2, yang berarti ID_R2==1
+ chip<1,0> --> R1, yang berarti ID_R1==2
+ chip<0,1> --> R4, yang berarti ID_R4==3
+ chip<1,1> --> R3, yang berarti ID_R3==4
+
  */
 
+#define ID_R1 1
+#define ID_R2 2
+#define ID_R3 3
+#define ID_R4 4
 
 #ifndef CTASK_H
 #define CTASK_H

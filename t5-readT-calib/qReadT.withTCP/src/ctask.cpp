@@ -41,7 +41,7 @@ void cTask::run()
 
     // For sensor-1
     T1 = new QThread();
-    R1 = new tempReader(1,N_ITERATION);
+    R1 = new tempReader(ID_R1,N_ITERATION);
     R1->moveToThread(T1);
     connect(R1, SIGNAL(newTval(int,int)), this, SLOT(readTval(int,int)));
     connect(T1, SIGNAL(started()), R1, SLOT(run()));
@@ -51,7 +51,7 @@ void cTask::run()
 
     // For sensor-2
     T2 = new QThread();
-    R2 = new tempReader(2,N_ITERATION);
+    R2 = new tempReader(ID_R2,N_ITERATION);
     R2->moveToThread(T2);
     connect(R2, SIGNAL(newTval(int,int)), this, SLOT(readTval(int,int)));
     connect(T2, SIGNAL(started()), R2, SLOT(run()));
@@ -61,7 +61,7 @@ void cTask::run()
 
     // For sensor-3
     T3 = new QThread();
-    R3 = new tempReader(3,N_ITERATION);
+    R3 = new tempReader(ID_R3,N_ITERATION);
     R3->moveToThread(T3);
     connect(R3, SIGNAL(newTval(int,int)), this, SLOT(readTval(int,int)));
     connect(T3, SIGNAL(started()), R3, SLOT(run()));
@@ -71,7 +71,7 @@ void cTask::run()
 
     // For sensor-4
     T4 = new QThread();
-    R4 = new tempReader(4,N_ITERATION);
+    R4 = new tempReader(ID_R4,N_ITERATION);
     R4->moveToThread(T4);
     connect(R4, SIGNAL(newTval(int,int)), this, SLOT(readTval(int,int)));
     connect(T4, SIGNAL(started()), R4, SLOT(run()));

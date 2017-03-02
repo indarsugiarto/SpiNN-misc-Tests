@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ybug 192.168.240.253 << EOF
+app_load wc_spinn3.aplx all 1-16 16
+EOF

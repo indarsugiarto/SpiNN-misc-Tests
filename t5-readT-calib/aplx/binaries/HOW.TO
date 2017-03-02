@@ -1,0 +1,19 @@
+Don't forget to boot the Spin3 first!
+
+- To load the profiler program on Spin3:
+$ ./run.profiler
+
+- To stop the profiler program:
+$ ./stop.profiler
+
+- To read current PLL setting in a chip (eq. chip <1,0>):
+$ ./readSpiNNpll.py -x1 -y0
+
+- To alter frequency of a chip (eq. chip <1,1> to be 150MHz):
+$ ./setSpiNNFreq.py -x1 -y1 -f150
+
+- To run example programs (when profiler is running):
+  - worst case scenario:
+    $ ./run.wc
+  - path tracer demo:
+    $ ./run.ptDemo

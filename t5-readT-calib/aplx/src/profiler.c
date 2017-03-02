@@ -23,6 +23,9 @@
 #include <math.h>
 #include "profiler.h"
 
+/*----------------------------------------------------------------------*/
+/*------------------------- Temperature Reading ------------------------*/
+
 /* in readTemp(), read the sensors and put the result in val[] */
 #define MY_CODE			1
 #define PATRICK_CODE	2
@@ -85,6 +88,10 @@ void readTemp(uint arg1, uint arg2)
 #endif
 }
 
+
+/*----------------------------------------------------------------------*/
+/*------------------------- Freq/PLL Manipulation ----------------------*/
+
 // getFreqParams() read parameter from memTable
 void getFreqParams(uint f, uint *ms, uint *ns)
 {
@@ -95,15 +102,24 @@ void getFreqParams(uint f, uint *ms, uint *ns)
 			*ns = (uint)memTable[i][2];
 			break;
 		}
+    //io_printf(IO_STD, "Found ms==%u, ns==%u\n", *ms, *ns);
 }
 
 // changeFreq() assumes that all cores (CPU-A and CPU-B) are controlled by PLL1
 void changeFreq(uint f, uint null)
 {
+
+	// first, we need to go into PLL_ISOLATE_CPUS mode
+	//io_printf(IO_STD, "Setting PLL into mode PLL_ISOLATE_CPUS...\n");
+	changePLL(PLL_ISOLATE_CPUS,0);
+
+	// then alter PLL1 (specified by r20)
+	//io_printf(IO_STD, "Altering r20...\n");
 	r20 = sc[SC_PLL1];
 
 	uint ns, ms;
 	getFreqParams(f, &ms, &ns);
+    //io_printf(IO_STD, "Check: ms==%u, ns==%u\n", ms, ns);
 	r20 &= 0xFFFFC0C0;			// apply masking at MS and NS
 	r20 |= ns;					// apply NS
 	r20 |= (ms << 8);			// apply MS
@@ -130,33 +146,6 @@ uint readSpinFreqVal()
 		}
 	}
 	return f;
-}
-
-void readSCP(uint mailbox, uint port)
-{
-	sdp_msg_t *msg = (sdp_msg_t *) mailbox;
-	// use MY_SDP_PORT for communication with the host via eth
-	if(port==DEF_SPINN_SDP_PORT) {
-		switch(msg->cmd_rc) {
-		case HOST_REQ_PLL_INFO:
-			spin1_schedule_callback(showPLLinfo, 0, 0, NON_CRITICAL_PRIORITY_VAL);
-		case HOST_SET_CHANGE_PLL:
-			// the "flag" parameter for changePLL() is specified in msg->seq, with valid value: 0, 1, or 2
-			spin1_schedule_callback(changePLL, msg->seq, msg->cmd_rc, NON_CRITICAL_PRIORITY_VAL);
-			break;
-		case HOST_REQ_REVERT_PLL:
-			// the "flag" parameter for changePLL() is set to 0 (or PLL_ORIGINAL)
-			spin1_schedule_callback(changePLL, PLL_ORIGINAL, msg->cmd_rc, NON_CRITICAL_PRIORITY_VAL);
-			break;
-		case HOST_SET_FREQ_VALUE:
-			// Note: HOST_SET_FREQ_VALUE assumes that CPUs use PLL1
-			//		 if this is not the case, then use HOST_SET_CHANGE_PLL
-			spin1_schedule_callback(changeFreq, msg->seq, HOST_SET_FREQ_VALUE, NON_CRITICAL_PRIORITY_VAL);
-			break;
-		}
-	}
-
-	spin1_msg_free (msg);
 }
 
 /* SYNOPSIS
@@ -325,21 +314,81 @@ void showPLLinfo(uint arg0, uint arg1)
     io_printf(IO_BUF, "**********************************************\n\n\n");
 }
 
+
+/*----------------------------------------------------------------------*/
+/*------------------------- Profiling function -------------------------*/
+
 void sendReport(uint arg0, uint arg1)
 {
+	// get the current frequency
+	_freq = readSpinFreqVal();
+
 	// read temperature sensor
 	readTemp(0,0);
-	// put in arg1, arg2, and arg3
+
+	// put in seg, arg1, arg2, and arg3
+	report.seq = (ushort)_freq;
 	report.arg1 = tempVal[0];
 	report.arg2 = tempVal[1];
 	report.arg3 = tempVal[2];
 	spin1_send_sdp_msg (&report, DEF_TIMEOUT);
 }
 
+void readSCP(uint mailbox, uint port)
+{
+	sdp_msg_t *msg = (sdp_msg_t *) mailbox;
+	// use MY_SDP_PORT for communication with the host via eth
+	if(port==DEF_SPINN_SDP_PORT) {
+		switch(msg->cmd_rc) {
+		case HOST_REQ_PLL_INFO:
+			spin1_schedule_callback(showPLLinfo, 0, 0, NON_CRITICAL_PRIORITY_VAL);
+			break;
+		case HOST_SET_CHANGE_PLL:
+			// the "flag" parameter for changePLL() is specified in msg->seq, with valid value: 0, 1, or 2
+			spin1_schedule_callback(changePLL, msg->seq, msg->cmd_rc, NON_CRITICAL_PRIORITY_VAL);
+			break;
+		case HOST_REQ_REVERT_PLL:
+			// the "flag" parameter for changePLL() is set to 0 (or PLL_ORIGINAL)
+			spin1_schedule_callback(changePLL, PLL_ORIGINAL, msg->cmd_rc, NON_CRITICAL_PRIORITY_VAL);
+			break;
+		case HOST_SET_FREQ_VALUE:
+			// Note: HOST_SET_FREQ_VALUE assumes that CPUs use PLL1
+			//		 if this is not the case, then use HOST_SET_CHANGE_PLL
+			spin1_schedule_callback(changeFreq, msg->seq, msg->cmd_rc, NON_CRITICAL_PRIORITY_VAL);
+			break;
+		}
+	}
+
+	spin1_msg_free (msg);
+}
+
+
 void c_main(void)
 {
+	// test memTable
+	/*
+	uint f, ns, ms;
+    if(sark_chip_id()==0) {
+	    for(uint i=0; i<lnMemTable; i++) {
+			f = (uint)memTable[i][0];
+			getFreqParams(f, &ms, &ns);
+		    io_printf(IO_STD, "i==%u, f==%u, ms==%u, ns==%u\n", i, f, ms, ns);
+
+	    }
+		return;
+	} else return;
+	*/
+
+	// First: sanity check
+	// Since some features require strict conditions
+        /*
 	if(sark_app_id() != DEF_MY_APP_ID) {
 		io_printf(IO_STD, "Please assign me app-ID %u\n", DEF_MY_APP_ID);
+		return;
+	}
+        */
+	if(sark_core_id() != DEF_PROFILER_CORE) {
+		io_printf(IO_STD, "Please put me in core-%u\n", DEF_PROFILER_CORE);
 		return;
 	}
 
@@ -359,13 +408,12 @@ void c_main(void)
 	report.srce_port = DEF_SPINN_SDP_PORT;
 	report.srce_addr = sv->p2p_addr;
 	report.cmd_rc = PROFILER_VERSION;
-	report.seq = 0;
 	report.length = szHeaderOnly;
 
 	// Anything else
 	uint myChipID = sark_chip_id();
 	uint myCoreID = sark_core_id();
-	io_printf(IO_STD, "Profiler is started at <%u,%u,%u>!\n", myChipID >> 8, myChipID & 0xFF, myCoreID);
+	io_printf(IO_STD, "Profiler is started at <%u,%u:%u>!\n", myChipID >> 8, myChipID & 0xFF, myCoreID);
 
 	// setup Timer for reporting 
 	spin1_set_timer_tick(REPORT_TIMER_TICK_PERIOD_US);

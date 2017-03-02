@@ -23,6 +23,7 @@
 
 #define DEF_DELAY_VAL				1000	// used mainly for io_printf
 #define DEF_MY_APP_ID				255
+#define DEF_PROFILER_CORE			17
 
 #define REPORT_TIMER_TICK_PERIOD_US	100000	// to get 0.1s resolution in FREQ_REF_200MHZ
 
@@ -63,7 +64,7 @@
 #define wdMemTable					3
 // memTable format: freq, MS, NS --> with default dv = 2, so that we don't have
 // to modify r24
-uchar memTable[lnMemTable][wdMemTable] = {
+static uchar memTable[lnMemTable][wdMemTable] = {
 {10,1,2},
 {11,5,11},
 {12,5,12},
