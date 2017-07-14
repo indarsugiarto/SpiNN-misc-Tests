@@ -91,6 +91,10 @@ void c_main(void)
     Bfreq = getFreq(Pb, Bdiv);
     Afreq = getFreq(Pa, Adiv);
 
+    // Note on SDRAM:
+    // internally, it has a by-2-divider, so we must take it into account
+    Mfreq *= 0.5;
+
     io_printf(IO_STD, "************* CLOCK INFORMATION **************\n");
     io_printf(IO_STD, "Reading from sark variables...\n");
     io_printf(IO_STD, "Clock divisors for system & router bus: %u\n", sv->clk_div);

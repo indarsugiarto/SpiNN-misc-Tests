@@ -13,6 +13,9 @@ SYNOPSIS:
     MainWindow then processes the data (such as regression for calibration), and
     then forward the resulting data to the plotter (tw).
     MainWindow also saves the data in a log file.
+
+TODO:
+    Kalman Filter for temperature fusion/tracking?
 """
 
 from PyQt4 import QtGui, QtNetwork

@@ -1,10 +1,16 @@
 #!/bin/bash
 
+SPIN3=192.168.240.253
+SPIN4=192.168.240.1
+SPIN5=192.168.240.1
+PROFILER_CORE=17
+PROFILER_ID=255
+
 # Start the drawer
 ./drawer 600 &
 
 # Load the path tracer demo application onto SpiNN-3
-ybug 192.168.240.253 << EOF
+ybug $SPIN3 << EOF
 
 # Go to root chip and set up IPTag on port 17894
 sp root
@@ -20,5 +26,5 @@ app_load aggregator.aplx . 1 17
 EOF
 
 # Trigger the application (substitute IP address).
-./pt_trig 192.168.240.253 600 10 16
+./pt_trig $SPIN3 600 10 16
 

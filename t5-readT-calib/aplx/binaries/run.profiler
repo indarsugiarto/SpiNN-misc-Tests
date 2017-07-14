@@ -1,7 +1,14 @@
 #!/bin/bash
 # Note: iptag 3 is used by the profiler for reporting!
 
-ybug 192.168.240.253 << EOF
+SPIN3=192.168.240.253
+SPIN4=192.168.240.1
+SPIN5=192.168.240.1
+PROFILER_CORE=17
+PROFILER_ID=255
+
+ybug $SPIN3 << EOF
 iptag 3 set . 20001
-app_load profiler.aplx all 17 255
+app_load profiler.aplx all $PROFILER_CORE $PROFILER_ID
 EOF
+

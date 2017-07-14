@@ -1,5 +1,12 @@
 #!/bin/bash
 
-ybug 192.168.240.253 << EOF
+SPIN3=192.168.240.253
+SPIN4=192.168.240.1
+SPIN5=192.168.240.1
+PROFILER_CORE=17
+PROFILER_ID=255
+
+ybug $SPIN3 << EOF
 app_load wc_spinn3.aplx all 1-16 16
 EOF
+
