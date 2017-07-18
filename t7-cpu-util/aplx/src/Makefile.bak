@@ -1,0 +1,11 @@
+target := ord isr
+
+LS := \ls -AlF
+
+all: $(target)
+	@for t in $(target); do ($(MAKE) -f Makefile.$$t) || exit $$?; done
+
+
+clean: $(target)
+	@for t in $(target); do ($(MAKE) clean -f Makefile.$$t) || exit $$?; done
+

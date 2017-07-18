@@ -1,0 +1,3 @@
+OBJ := cpu_idle_cntr_isr
+THUMB := 0
+

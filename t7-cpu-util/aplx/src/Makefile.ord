@@ -1,5 +1,3 @@
 APP := cpuload
-OBJECTS := cpu_idle_cntr_isr.o cpuload.o
 THUMB := 0
 include $(SPINN_DIRS)/make/app.make
-

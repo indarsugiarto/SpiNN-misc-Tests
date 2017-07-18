@@ -6,14 +6,17 @@
  *   the value of 100, it means that core is 100% utilized during the
  *   sampling period of 1000000/32000 us == 3.124ms
  */
-#include <sark.h>
-#include "
+//#include <sark.h>
+#include <spin1_api.h>
 extern uchar running_cpu_idle_cntr[18]; // an array of 18-cores idle counters
 extern uchar stored_cpu_idle_cntr[18];
 extern uint idle_cntr_cntr; // counter of idle counter
+extern void print_cntr(uint null, uint nill);
 
 INT_HANDLER hSlowTimer (void)
 {
+  uint r25, i;
+
   dma[DMA_GCTL] = 0x7FFFFFFF; // clear bit[31] of dma GCTL
 
   if(++idle_cntr_cntr==100) {
@@ -27,6 +30,9 @@ INT_HANDLER hSlowTimer (void)
   }
   else {
     // detect idle state of all cores
+    r25 = sc[SC_SLEEP];
+    for(i=0; i<18; i++)
+        running_cpu_idle_cntr[i] += (r25 >> i) & 1;
   }
   vic[VIC_VADDR] = (uint) vic;			// Tell VIC we're done
 }
@@ -38,5 +44,5 @@ INT_HANDLER hSlowTimer (void)
  */
 INT_HANDLER hSoftInt (void)
 {
-
+  spin1_schedule_callback(print_cntr, 0, 0, 1);
 }
