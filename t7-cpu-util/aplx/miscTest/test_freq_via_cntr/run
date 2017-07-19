@@ -1,0 +1,6 @@
+#!/bin/bash
+date +%s.%N 
+ybug spin3 << EOF
+app_load test_freq_via_cntr.aplx . 1 16
+EOF
+

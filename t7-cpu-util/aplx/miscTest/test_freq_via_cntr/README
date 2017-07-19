@@ -1,0 +1,16 @@
+Cara pakainya:
+1. jalankan ./run
+   --> akan ditampilkan waktu (format sec.ns)
+2. begitu myTub menampilkan "Stop", jalankan ./stop
+   --> akan ditampilkan lagi waktu
+3. gunakan bc -l untuk menghitung waktu setelah stop 
+   dan setelah run
+
+4. Kemudian ubah frekuensi menjadi 255
+5. Ulangi langkah 1-3
+
+Hasilnya:
+- dengan f=200MHz: 23.605410575
+- dengan f=255MHz: 18.807380156
+
+Kesimpulan: berarti memang frequency cpu berubah (semoga ke 255)
