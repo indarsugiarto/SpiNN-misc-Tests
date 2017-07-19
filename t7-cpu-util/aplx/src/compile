@@ -1,0 +1,13 @@
+#!/bin/bash
+
+APLX=cpuload.aplx
+
+make
+
+if [ -e $APLX ]; then
+  echo
+  echo "[INFO] moving aplx to ../bin/"
+  mv -f $APLX ../bin/
+  echo "[INFO] result:"
+  ls -AlF ../bin/$APLX
+fi

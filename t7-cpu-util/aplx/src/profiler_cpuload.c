@@ -6,11 +6,8 @@
  *   the value of 100, it means that core is 100% utilized during the
  *   sampling period of 1000000/32000 us == 3.124ms
  */
-#include "spin1_api.h"
-extern uchar running_cpu_idle_cntr[18]; // an array of 18-cores idle counters
-extern uchar stored_cpu_idle_cntr[18];
-extern uint idle_cntr_cntr; // counter of idle counter
-extern void print_cntr(uint null, uint nill);
+//#include <sark.h>
+#include "profiler.h"
 
 INT_HANDLER hSlowTimer (void)
 {
@@ -18,7 +15,15 @@ INT_HANDLER hSlowTimer (void)
 
   dma[DMA_GCTL] = 0x7FFFFFFF; // clear bit[31] of dma GCTL
 
-  if(++idle_cntr_cntr>=100) {
+#if(DEBUG_LEVEL>0)
+  tick++;
+  if(tick >= 10000) {
+    //if run too long, it make RTE:
+    io_printf(IO_BUF, "tick-%d\n", tick_cnt);
+    tick = 0; tick_cnt++;
+  }
+#endif
+  if(++idle_cntr_cntr>100) {
     // copy to stored_cpu_idle_cntr
     // sark_mem_cpy(stored_cpu_idle_cntr, running_cpu_idle_cntr, 18);
     // clear running_cpu_idle_cntr and idle_cntr_cntr
@@ -28,7 +33,8 @@ INT_HANDLER hSlowTimer (void)
     }
     idle_cntr_cntr = 0;
     // trigger software interrupt for the main profiler loop
-    spin1_trigger_user_event(0,0);
+    // the software interrupt is handled via user event
+    spin1_trigger_user_event(0, 0);
   }
   else {
     // detect idle state of all cores
@@ -43,9 +49,23 @@ INT_HANDLER hSlowTimer (void)
  * reaches 100. This signify ends of sampling period.
  * profiler should response this to collect the cpu utilization
  * value.
- * Will not be used, since we use user event.
+ * Not used, because we use user event.
  */
 INT_HANDLER hSoftInt (void)
 {
+  print_cntr(0,0);
+  //spin1_schedule_callback(print_cntr, 0, 0, 1);
   vic[VIC_VADDR] = (uint) vic;
 }
+
+uchar getNumActiveCores()
+{
+	uchar i, nCores = sv->num_cpus, nApp = 0;
+	for(i=0; i<nCores; i++) {
+		if(sv->vcpu_base[i].cpu_state >= CPU_STATE_RUN &&
+		   sv->vcpu_base[i].cpu_state < CPU_STATE_EXIT)
+			nApp++;
+	}
+	return nApp; //nApp includes the monitor core and the profiler core!!!
+}
+

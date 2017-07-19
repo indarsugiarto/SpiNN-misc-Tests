@@ -1,8 +1,4 @@
-/* This is the working version using SLOW_CLK_INT with spin1_api.
- * Key: using SLOT10 (or any free slot)
- */
-#include <sark.h>
-#include <spin1_api.h>
+#include "profiler.h"
 
 uchar running_cpu_idle_cntr[18];
 uchar  stored_cpu_idle_cntr[18];
@@ -53,6 +49,8 @@ void init_app()
   
 }
 
+
+
 void c_main ()
 {
   init_app();
@@ -61,3 +59,22 @@ void c_main ()
   spin1_callback_on(USER_EVENT, print_cntr, 1);
   spin1_start(SYNC_NOWAIT);
 }
+
+
+/*----------------------- Misc. Utilities ------------------------*/
+
+short generateProfilerID()
+{
+    short id=-1, i;
+
+	uint x = CHIP_X(sv->p2p_addr);
+	uint y = CHIP_Y(sv->p2p_addr);
+
+    for(i=0; i<48; i++) {
+        if(profIDTable[i][0]==x && profIDTable[i][1]==y) {
+            id = i; break;
+        }
+    }
+    return id;
+}
+
