@@ -9,6 +9,14 @@
 //#include <sark.h>
 #include "profiler.h"
 
+// import variables from other parts
+extern uchar running_cpu_idle_cntr[18];
+extern uchar  stored_cpu_idle_cntr[18];
+extern uint idle_cntr_cntr; //master counter that count up to 100
+
+extern uint tick;
+extern uint tick_cnt;
+
 INT_HANDLER hSlowTimer (void)
 {
   uint r25, i;
@@ -56,16 +64,5 @@ INT_HANDLER hSoftInt (void)
   print_cntr(0,0);
   //spin1_schedule_callback(print_cntr, 0, 0, 1);
   vic[VIC_VADDR] = (uint) vic;
-}
-
-uchar getNumActiveCores()
-{
-	uchar i, nCores = sv->num_cpus, nApp = 0;
-	for(i=0; i<nCores; i++) {
-		if(sv->vcpu_base[i].cpu_state >= CPU_STATE_RUN &&
-		   sv->vcpu_base[i].cpu_state < CPU_STATE_EXIT)
-			nApp++;
-	}
-	return nApp; //nApp includes the monitor core and the profiler core!!!
 }
 

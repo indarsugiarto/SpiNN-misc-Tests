@@ -1,13 +1,18 @@
 #!/bin/bash
 
-APLX=cpuload.aplx
-
+APLX=profiler.aplx
+BIN_DIR=../bin
 make
 
 if [ -e $APLX ]; then
+  if [ ! -d $BIN_DIR ]; then
+    echo "[INFO] Creating bin directory..."
+    mkdir -p $BIN_DIR
+  fi
   echo
-  echo "[INFO] moving aplx to ../bin/"
-  mv -f $APLX ../bin/
+  echo "[INFO] moving aplx to "$BIN_DIR
+  mv -f $APLX $BIN_DIR/
   echo "[INFO] result:"
-  ls -AlF ../bin/$APLX
+  ls -AlF $BIN_DIR/$APLX
 fi
+

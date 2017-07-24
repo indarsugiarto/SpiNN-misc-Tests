@@ -54,8 +54,11 @@
 
 #define DEBUG_LEVEL					0
 
+/*--------- Some functionalities needs fix point representation ----------*/
 #define REAL						accum
 #define REAL_CONST(x)				x##k
+/*------------------------------------------------------------------------*/
+
 
 #define DEF_DELAY_VAL				1000	// used mainly for io_printf
 #define DEF_MY_APP_ID				255
@@ -101,29 +104,17 @@
 
 /*====================== PLL-related Functions =======================*/
 
-void initPLL();                             // this to make sure
-void changeFreq(uint component, uint f);        // we use uchar to limit the frequency to 255
+void initPLL();                          // set PLLs to fine-grained mode
+void changeFreq(uint component, uint f);
 void showPLLinfo(uint arg0, uint arg1);
-
+void revertPLL();                        // return back PLL configuration
 
 uint curr_freq; // current frequency
-uchar FR1, MS1, NS1, FR2, MS2, NS2;
-uchar Sdiv, Sys_sel, Rdiv, Rtr_sel, Mdiv, Mem_sel, Bdiv, Pb, Adiv, Pa;
-REAL Sfreq, Rfreq, Mfreq, Bfreq, Afreq;
 
 
-
-#define lnIDTable					48
-#define wdIDTable					2
-static uchar profIDTable[lnIDTable][wdIDTable] = {
-{0,0},{1,0},{2,0},{3,0},{4,0},
-{0,1},{1,1},{2,1},{3,1},{4,1},{5,1},
-{0,2},{1,2},{2,2},{3,2},{4,2},{5,2},{6,2},
-{0,3},{1,3},{2,3},{3,3},{4,3},{5,3},{6,3},{7,3},
-      {1,4},{2,4},{3,4},{4,4},{5,4},{6,4},{7,4},
-            {2,5},{3,5},{4,5},{5,5},{6,5},{7,5},
-                  {3,6},{4,6},{5,6},{6,6},{7,6},
-                        {4,7},{5,7},{6,7},{7,7}};
+/*======================== Misc. Functions ===========================*/
+void generateProfilerID();
+void print_cntr(uint null, uint nill);
 
 /*--------------------- Reporting Data Structure -------------------------*/
 /*------------------------------------------------------------------------*/
@@ -171,13 +162,8 @@ uint tempVal[3];							// there are 3 sensors in each chip
 // function prototypes
 void readTemp(uint arg1, uint arg2);
 void readSCP(uint mailbox, uint port);
-REAL getFreq(uchar sel, uchar dv);	            // for displaying purpose only (decimal number)
-uint readSpinFreqVal();
 void sendReport(uint arg0, uint arg1);
-char *selName(uchar s);
-void get_FR_str(uchar fr);
 void reportToHost(uint arg0, uint arg1);
-short generateProfilerID();
 uchar getNumActiveCores();
 void initRouter();                              // sub-profilers report to the root profiler
 void hMCPL(uint key, uint payload);

@@ -113,14 +113,32 @@ static const uchar memTable[lnMemTable][wdMemTable] = {
 {255,1,51},
 };
 
+
+
 // Variables:
 uint _r20, _r21, _r24;		// the original value of r20, r21, and r24
 uint r20, r21, r24;			// the current value of r20, r21 and r24
-static uint isModified = FALSE;
+
+static uint isModified = FALSE; // only modified in initPLL() and revertPLL()
+
+uchar FR1, MS1, NS1, FR2, MS2, NS2;
+uchar Sdiv, Sys_sel, Rdiv, Rtr_sel, Mdiv, Mem_sel, Bdiv, Pb, Adiv, Pa;
+REAL Sfreq, Rfreq, Mfreq, Bfreq, Afreq;
+
+
+
 
 // Local prototypes
 static void changePLL(uint flag);
 static void getFreqParams(uint f, uint *ms, uint *ns);
+REAL getFreq(uchar sel, uchar dv);	            // for displaying purpose only (decimal number)
+void get_FR_str(uchar fr);
+uint readCoreFreqVal();
+char *selName(uchar s);
+
+
+
+
 
 /**************************************************************************
  * initPLL() will put system AHB and router into PLL2 so that PLL1 will
@@ -204,6 +222,92 @@ void changeFreq(uint component, uint f)        // we use uchar to limit the freq
     }
 }
 
+
+void showPLLinfo(uint arg0, uint arg1)
+{
+	r20 = sc[SC_PLL1];
+	r21 = sc[SC_PLL2];
+	r24 = sc[SC_CLKMUX];
+
+	io_printf(IO_BUF, "Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
+
+	FR1 = (r20 >> 16) & 3;
+	MS1 = (r20 >> 8) & 0x3F;
+	NS1 = r20 & 0x3F;
+	FR2 = (r21 >> 16) & 3;
+	MS2 = (r21 >> 8) & 0x3F;
+	NS2 = r21 & 0x3F;
+
+	Sdiv = ((r24 >> 22) & 3) + 1;
+	Sys_sel = (r24 >> 20) & 3;
+	Rdiv = ((r24 >> 17) & 3) + 1;
+	Rtr_sel = (r24 >> 15) & 3;
+	Mdiv = ((r24 >> 12) & 3) + 1;
+	Mem_sel = (r24 >> 10) & 3;
+	Bdiv = ((r24 >> 7) & 3) + 1;
+	Pb = (r24 >> 5) & 3;
+	Adiv = ((r24 >> 2) & 3) + 1;
+	Pa = r24 & 3;
+
+	Sfreq = getFreq(Sys_sel, Sdiv);
+	Rfreq = getFreq(Rtr_sel, Rdiv);
+	Mfreq = getFreq(Mem_sel, Mdiv);
+	Bfreq = getFreq(Pb, Bdiv);
+	Afreq = getFreq(Pa, Adiv);
+
+	io_printf(IO_BUF, "************* CLOCK INFORMATION **************\n");
+	io_printf(IO_BUF, "Reading sark library...\n");
+	io_printf(IO_BUF, "Clock divisors for system & router bus: %u\n", sv->clk_div);
+	io_printf(IO_BUF, "CPU clock in MHz   : %u\n", sv->cpu_clk);
+	io_printf(IO_BUF, "SDRAM clock in MHz : %u\n\n", sv->mem_clk);
+
+	io_printf(IO_BUF, "Reading registers directly...\n");
+	io_printf(IO_BUF, "PLL-1\n");
+	io_printf(IO_BUF, "----------------------------\n");
+	io_printf(IO_BUF, "Frequency range      : "); get_FR_str(FR1);
+	io_printf(IO_BUF, "Output clk divider   : %u\n", MS1);
+	io_printf(IO_BUF, "Input clk multiplier : %u\n\n", NS1);
+
+	io_printf(IO_BUF, "PLL-2\n");
+	io_printf(IO_BUF, "----------------------------\n");
+	io_printf(IO_BUF, "Frequency range      : "); get_FR_str(FR2);
+	io_printf(IO_BUF, "Output clk divider   : %u\n", MS2);
+	io_printf(IO_BUF, "Input clk multiplier : %u\n\n", NS2);
+
+	io_printf(IO_BUF, "Multiplerxer\n");
+	io_printf(IO_BUF, "----------------------------\n");
+	io_printf(IO_BUF, "System AHB clk divisor  : %u\n", Sdiv);
+	io_printf(IO_BUF, "System AHB clk selector : %u (%s)\n", Sys_sel, selName(Sys_sel));
+	io_printf(IO_BUF, "System AHB clk freq     : %k MHz\n", Sfreq);
+	io_printf(IO_BUF, "Router clk divisor      : %u\n", Rdiv);
+	io_printf(IO_BUF, "Router clk selector     : %u (%s)\n", Rtr_sel, selName(Rtr_sel));
+	io_printf(IO_BUF, "Router clk freq         : %k MHz\n", Rfreq);
+	io_printf(IO_BUF, "SDRAM clk divisor       : %u\n", Mdiv);
+	io_printf(IO_BUF, "SDRAM clk selector      : %u (%s)\n", Mem_sel, selName(Mem_sel));
+	io_printf(IO_BUF, "SDRAM clk freq          : %k MHz\n", Mfreq);
+	io_printf(IO_BUF, "CPU-B clk divisor       : %u\n", Bdiv);
+	io_printf(IO_BUF, "CPU-B clk selector      : %u (%s)\n", Pb, selName(Pb));
+	io_printf(IO_BUF, "CPU-B clk freq          : %k MHz\n", Bfreq);
+	io_printf(IO_BUF, "CPU-A clk divisor       : %u\n", Adiv);
+	io_printf(IO_BUF, "CPU-A clk selector      : %u (%s)\n", Pa, selName(Pa));
+	io_printf(IO_BUF, "CPU-A clk freq          : %k MHz\n", Afreq);
+	io_printf(IO_BUF, "**********************************************\n\n\n");
+}
+
+
+void revertPLL()
+{
+	// change PLL back to its original value
+	changePLL(0);
+	isModified = FALSE;
+}
+
+
+
+
+/*--------------------- Other sub/local functions ----------------------*/
+
+
 // getFreqParams() read parameter from memTable
 void getFreqParams(uint f, uint *ms, uint *ns)
 {
@@ -218,8 +322,9 @@ void getFreqParams(uint f, uint *ms, uint *ns)
 }
 
 
-/* NOTE: readSpinFreqVal() assumes that the value of _dv_ is always 2 */
-uint readSpinFreqVal()
+/* readCoreFreqVal() reads from the memTable and find the matching MS and NS.
+ * NOTE: readCoreFreqVal() assumes that the value of _dv_ is always 2 */
+uint readCoreFreqVal()
 {
     uint i, MS1, NS1, f = sv->cpu_clk;
     r20 = sc[SC_PLL1];
@@ -253,6 +358,10 @@ REAL getFreq(uchar sel, uchar dv)
     return val;
 }
 
+/* get_FR_str() returns a string that represents the FR-bits (frequency range)
+ * NOTE: The MS and NS bits seem to be independent of this bits, i.e., MS and NS
+ * can produce frequencies beyond the max specified in this FR-bits.
+ * */
 void get_FR_str(uchar fr)
 {
     sark_delay_us(1000);
@@ -283,77 +392,6 @@ char *selName(uchar s)
     case 3: name = "clk_in_div_4"; break;
     }
     return name;
-}
-
-void showPLLinfo(uint arg0, uint arg1)
-{
-    r20 = sc[SC_PLL1];
-    r21 = sc[SC_PLL2];
-    r24 = sc[SC_CLKMUX];
-
-    io_printf(IO_BUF, "Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
-
-    FR1 = (r20 >> 16) & 3;
-    MS1 = (r20 >> 8) & 0x3F;
-    NS1 = r20 & 0x3F;
-    FR2 = (r21 >> 16) & 3;
-    MS2 = (r21 >> 8) & 0x3F;
-    NS2 = r21 & 0x3F;
-
-    Sdiv = ((r24 >> 22) & 3) + 1;
-    Sys_sel = (r24 >> 20) & 3;
-    Rdiv = ((r24 >> 17) & 3) + 1;
-    Rtr_sel = (r24 >> 15) & 3;
-    Mdiv = ((r24 >> 12) & 3) + 1;
-    Mem_sel = (r24 >> 10) & 3;
-    Bdiv = ((r24 >> 7) & 3) + 1;
-    Pb = (r24 >> 5) & 3;
-    Adiv = ((r24 >> 2) & 3) + 1;
-    Pa = r24 & 3;
-
-    Sfreq = getFreq(Sys_sel, Sdiv);
-    Rfreq = getFreq(Rtr_sel, Rdiv);
-    Mfreq = getFreq(Mem_sel, Mdiv);
-    Bfreq = getFreq(Pb, Bdiv);
-    Afreq = getFreq(Pa, Adiv);
-
-    io_printf(IO_BUF, "************* CLOCK INFORMATION **************\n"); 
-    io_printf(IO_BUF, "Reading sark library...\n"); 
-    io_printf(IO_BUF, "Clock divisors for system & router bus: %u\n", sv->clk_div); 
-    io_printf(IO_BUF, "CPU clock in MHz   : %u\n", sv->cpu_clk); 
-    io_printf(IO_BUF, "SDRAM clock in MHz : %u\n\n", sv->mem_clk); 
-
-    io_printf(IO_BUF, "Reading registers directly...\n"); 
-    io_printf(IO_BUF, "PLL-1\n"); 
-    io_printf(IO_BUF, "----------------------------\n"); 
-    io_printf(IO_BUF, "Frequency range      : "); get_FR_str(FR1);
-    io_printf(IO_BUF, "Output clk divider   : %u\n", MS1); 
-    io_printf(IO_BUF, "Input clk multiplier : %u\n\n", NS1); 
-
-    io_printf(IO_BUF, "PLL-2\n"); 
-    io_printf(IO_BUF, "----------------------------\n"); 
-    io_printf(IO_BUF, "Frequency range      : "); get_FR_str(FR2);
-    io_printf(IO_BUF, "Output clk divider   : %u\n", MS2); 
-    io_printf(IO_BUF, "Input clk multiplier : %u\n\n", NS2); 
-
-    io_printf(IO_BUF, "Multiplerxer\n"); 
-    io_printf(IO_BUF, "----------------------------\n"); 
-    io_printf(IO_BUF, "System AHB clk divisor  : %u\n", Sdiv); 
-    io_printf(IO_BUF, "System AHB clk selector : %u (%s)\n", Sys_sel, selName(Sys_sel)); 
-    io_printf(IO_BUF, "System AHB clk freq     : %k MHz\n", Sfreq); 
-    io_printf(IO_BUF, "Router clk divisor      : %u\n", Rdiv); 
-    io_printf(IO_BUF, "Router clk selector     : %u (%s)\n", Rtr_sel, selName(Rtr_sel)); 
-    io_printf(IO_BUF, "Router clk freq         : %k MHz\n", Rfreq); 
-    io_printf(IO_BUF, "SDRAM clk divisor       : %u\n", Mdiv); 
-    io_printf(IO_BUF, "SDRAM clk selector      : %u (%s)\n", Mem_sel, selName(Mem_sel)); 
-    io_printf(IO_BUF, "SDRAM clk freq          : %k MHz\n", Mfreq); 
-    io_printf(IO_BUF, "CPU-B clk divisor       : %u\n", Bdiv); 
-    io_printf(IO_BUF, "CPU-B clk selector      : %u (%s)\n", Pb, selName(Pb)); 
-    io_printf(IO_BUF, "CPU-B clk freq          : %k MHz\n", Bfreq); 
-    io_printf(IO_BUF, "CPU-A clk divisor       : %u\n", Adiv); 
-    io_printf(IO_BUF, "CPU-A clk selector      : %u (%s)\n", Pa, selName(Pa)); 
-    io_printf(IO_BUF, "CPU-A clk freq          : %k MHz\n", Afreq); 
-    io_printf(IO_BUF, "**********************************************\n\n\n");
 }
 
 /* SYNOPSIS
