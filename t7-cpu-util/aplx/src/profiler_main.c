@@ -1,36 +1,29 @@
 #include "profiler.h"
 
-uchar running_cpu_idle_cntr[18];
-uchar  stored_cpu_idle_cntr[18];
-uint idle_cntr_cntr = 0; //master counter that count up to 100
-
-uint tick = 0;
-uint tick_cnt = 0;
-
-extern INT_HANDLER hSlowTimer (void);
-
 void init_app()
 {
   // initialize profiler ID, or create a list for it
-  generateProfilerID();
+  generateProfilerID(); // see profiler_util.c
+
+  // initialize cpu load counter
+  init_idle_cntr(); // see profiler_cpuload.cp
 
   // initialize router
+  init_Router();    // see profiler_events.c
 
-  // initialize counter
-  for(int i=0; i<18; i++) {
-    running_cpu_idle_cntr[i] = 0;
-    stored_cpu_idle_cntr[i]  = 0;
-  } 
-  
+  // initialize event handler
+  init_Handlers();  // see profiler_events.c
+
+  // put version to vcpu->user0 to be detected by host GUI
+  sark.vcpu->user0 = PROFILER_VERSION;
 }
 
 
 
 void c_main ()
 {
+  sanityCheck();        // Since some features require strict conditions
   init_app();
-  sark_vic_set (SLOT_10, SLOW_CLK_INT, 1, hSlowTimer);
-  spin1_callback_on(USER_EVENT, print_cntr, 1);
   if(sv->p2p_addr==0)
 	io_printf(IO_STD, "Profiler-%d is ready!\n", my_pID);
   else

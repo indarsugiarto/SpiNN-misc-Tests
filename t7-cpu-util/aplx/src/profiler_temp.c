@@ -3,9 +3,11 @@
 /*----------------------------------------------------------------------*/
 /*------------------------- Temperature Reading ------------------------*/
 
-/* in readTemp(), read the sensors and put the result in val[] */
-
-void readTemp(uint arg1, uint arg2)
+/***********************************************************************
+ * in readTemp(), read the sensors and put the result in val[]
+ * In addition, the value of sensor-2 will be used as return value.
+ ***********************************************************************/
+uint readTemp()
 {
     uint i, done, S[] = {SC_TS0, SC_TS1, SC_TS2};
 
@@ -20,6 +22,6 @@ void readTemp(uint arg1, uint arg2)
         sc[S[i]] = sc[S[i]] & 0x0FFFFFFF;
         tempVal[i] = sc[S[i]] & 0x00FFFFFF;
     }
-
+    return tempVal[2];
 }
 

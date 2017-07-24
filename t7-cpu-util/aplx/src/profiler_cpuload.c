@@ -10,12 +10,13 @@
 #include "profiler.h"
 
 // import variables from other parts
-extern uchar running_cpu_idle_cntr[18];
-extern uchar  stored_cpu_idle_cntr[18];
-extern uint idle_cntr_cntr; //master counter that count up to 100
+uchar running_cpu_idle_cntr[18] = {0};
+uchar  stored_cpu_idle_cntr[18] = {0};
+uint idle_cntr_cntr = 0; //master counter that count up to 100
 
-extern uint tick;
-extern uint tick_cnt;
+// the following two variables are just for debugging
+uint tick = 0;
+uint tick_cnt = 0;
 
 INT_HANDLER hSlowTimer (void)
 {
@@ -64,5 +65,41 @@ INT_HANDLER hSoftInt (void)
   print_cntr(0,0);
   //spin1_schedule_callback(print_cntr, 0, 0, 1);
   vic[VIC_VADDR] = (uint) vic;
+}
+
+
+// print_cntr just for debugging
+// will be called/scheduled by hSoftInt
+void print_cntr(uint null, uint nill)
+{
+  //for(int i=0; i<18; i++) {
+    //io_printf(IO_STD,"phys_cpu-%d = %d\n", i, stored_cpu_idle_cntr[i]);
+    io_printf(IO_STD, "%03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d\n"
+                    , stored_cpu_idle_cntr[0]
+                    , stored_cpu_idle_cntr[1]
+                    , stored_cpu_idle_cntr[2]
+                    , stored_cpu_idle_cntr[3]
+                    , stored_cpu_idle_cntr[4]
+                    , stored_cpu_idle_cntr[5]
+                    , stored_cpu_idle_cntr[6]
+                    , stored_cpu_idle_cntr[7]
+                    , stored_cpu_idle_cntr[8]
+                    , stored_cpu_idle_cntr[9]
+                    , stored_cpu_idle_cntr[10]
+                    , stored_cpu_idle_cntr[11]
+                    , stored_cpu_idle_cntr[12]
+                    , stored_cpu_idle_cntr[13]
+                    , stored_cpu_idle_cntr[14]
+                    , stored_cpu_idle_cntr[15]
+                    , stored_cpu_idle_cntr[16]
+                    , stored_cpu_idle_cntr[17]);
+  //}
+  //io_printf(IO_STD,"\n\n");
+}
+
+void init_idle_cntr()
+{
+    sark_vic_set (SLOT_FIQ, SLOW_CLK_INT, 1, hSlowTimer);
+    spin1_callback_on(USER_EVENT, print_cntr, 1);
 }
 

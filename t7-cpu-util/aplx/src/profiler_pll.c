@@ -171,9 +171,11 @@ void initPLL()
  * 1 - system AHB
  * 2 - router
  * Due to SDRAM requires 260MHz, we cannot change PLL2 because PLL2 is
- * set to 520MHz already.
+ * set to 520MHz already. When changePLL() is called for the first time,
+ * it should change Router and System AHB divider appropriately (see
+ * changePLL() for detail).
  **************************************************************************/
-void changeFreq(uint component, uint f)        // we use uchar to limit the frequency to 255
+void changeFreq(PLL_PART component, uint f)
 {
     if(isModified==FALSE) {
 #if(DEBUG_LEVEL>0
@@ -181,7 +183,7 @@ void changeFreq(uint component, uint f)        // we use uchar to limit the freq
 #endif
         return;
     }
-    if(component==0) {
+    if(component==PLL_CPU) {
         // then alter PLL1 (specified by r20)
         r20 = sc[SC_PLL1];
 
@@ -202,22 +204,43 @@ void changeFreq(uint component, uint f)        // we use uchar to limit the freq
 
         curr_freq = f;
     }
-    else if(component==1) {         // for system AHB
+    else if(component==PLL_AHB) {         // for system AHB
+        r24 = sc[SC_CLKMUX];
         // here the only possible value is 130 or 173.33
         if(f==130) {
-
+            r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
+            r24 |= (0xE << 20); //set Sdiv = 4 and "Sys" = 2
+            sc[SC_CLKMUX] = r24;
+        }
+        else if(f==173){
+            r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
+            r24 |= (0x6 << 20); //set Sdiv = 3 and "Sys" = 2
+            sc[SC_CLKMUX] = r24;
         }
         else {
-
+#if(DEBUG_LEVEL>0
+        io_printf(IOBUF, "[ERR] Not available!\n");
+#endif
         }
     }
-    else if(component==2) {         // for router
+    else if(component==PLL_RTR) {         // for router
+        r24 = sc[SC_CLKMUX];
         // here the only possible value is 130 or 173.33
         if(f==130) {
-
+            // the Router
+            r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
+            r24 |= (0xE << 15); //set Rdiv = 4 and "Rtr" = 2
+            sc[SC_CLKMUX] = r24;
+        }
+        else if(f==173){
+            r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
+            r24 |= (0xE << 15); //set Rdiv = 3 and "Rtr" = 2
+            sc[SC_CLKMUX] = r24;
         }
         else {
-
+#if(DEBUG_LEVEL>0
+        io_printf(IOBUF, "[ERR] Not available!\n");
+#endif
         }
     }
 }
@@ -251,7 +274,7 @@ void showPLLinfo(uint arg0, uint arg1)
 
 	Sfreq = getFreq(Sys_sel, Sdiv);
 	Rfreq = getFreq(Rtr_sel, Rdiv);
-	Mfreq = getFreq(Mem_sel, Mdiv);
+    Mfreq = getFreq(Mem_sel, Mdiv); Mfreq = Mfreq * REAL_CONST(0.5);
 	Bfreq = getFreq(Pb, Bdiv);
 	Afreq = getFreq(Pa, Adiv);
 

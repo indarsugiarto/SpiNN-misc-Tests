@@ -120,32 +120,14 @@ uchar getNumActiveCores()
 	return nApp; //nApp includes the monitor core and the profiler core!!!
 }
 
-
-// print_cntr just for debugging
-// will be called/scheduled by hSoftInt
-void print_cntr(uint null, uint nill)
+void sanityCheck()
 {
-  //for(int i=0; i<18; i++) {
-	//io_printf(IO_STD,"phys_cpu-%d = %d\n", i, stored_cpu_idle_cntr[i]);
-	io_printf(IO_STD, "%03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d %03d\n"
-					, stored_cpu_idle_cntr[0]
-					, stored_cpu_idle_cntr[1]
-					, stored_cpu_idle_cntr[2]
-					, stored_cpu_idle_cntr[3]
-					, stored_cpu_idle_cntr[4]
-					, stored_cpu_idle_cntr[5]
-					, stored_cpu_idle_cntr[6]
-					, stored_cpu_idle_cntr[7]
-					, stored_cpu_idle_cntr[8]
-					, stored_cpu_idle_cntr[9]
-					, stored_cpu_idle_cntr[10]
-					, stored_cpu_idle_cntr[11]
-					, stored_cpu_idle_cntr[12]
-					, stored_cpu_idle_cntr[13]
-					, stored_cpu_idle_cntr[14]
-					, stored_cpu_idle_cntr[15]
-					, stored_cpu_idle_cntr[16]
-					, stored_cpu_idle_cntr[17]);
-  //}
-  //io_printf(IO_STD,"\n\n");
+    if(sark_core_id() != DEF_PROFILER_CORE) {
+        io_printf(IO_STD, "[ERR] Put me at core-%d!\n", DEF_PROFILER_CORE);
+        rt_error(RTE_SWERR);
+    }
+    if(sark_app_id() != DEF_MY_APP_ID) {
+        io_printf(IO_STD, "[ERR] Give me app id-%d!\n", DEF_MY_APP_ID);
+        rt_error(RTE_SWERR);
+    }
 }
