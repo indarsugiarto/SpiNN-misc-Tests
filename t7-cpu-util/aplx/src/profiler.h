@@ -74,7 +74,26 @@
 #define NON_CRITICAL_PRIORITY_VAL	4
 #define LOWEST_PRIORITY_VAL			4		// I found from In spin1_api_params.h I found this: #define NUM_PRIORITIES    5
 #define IDLE_PRIORITY_VAL			LOWEST_PRIORITY_VAL
+#define SCHEDULED_PRIORITY_VAL      1
 
+/*--------------------- Reporting Data Structure -------------------------*/
+/* The idea is: since this version uses slow recording, then each profiler
+ * can report directly to host-PC via SDP.
+/*------------------------------------------------------------------------*/
+typedef struct pro_info {
+    ushort v;           // profiler version, in cmd_rc
+    ushort pID;         // which chip sends this?, in seq
+    uchar cpu_freq;     // in arg1
+    uchar rtr_freq;     // in arg1
+    uchar ahb_freq;     // in arg1
+    uchar nActive;      // in arg1
+    ushort  temp1;         // from sensor-1, for arg2
+    ushort temp3;         // from sensor-3, for arg2
+    uint memfree;       // optional, sdram free (in bytes), in arg3
+    uchar load[18];
+} pro_info_t;
+
+pro_info_t myProfile;
 
 /*====================== PLL-related Functions =======================*/
 
@@ -85,7 +104,7 @@ void initPLL();                             // set PLLs to fine-grained mode
 void changeFreq(PLL_PART component, uint f);
 void showPLLinfo(uint arg0, uint arg1);
 void revertPLL();                           // return back PLL configuration
-
+uint readFreq(uint fAHB, uint fRTR);        // return three values
 uint curr_freq;                             // current cpu frequency
 
 
@@ -111,5 +130,12 @@ void generateProfilerID();
 void print_cntr(uint null, uint nill);
 uchar getNumActiveCores();
 
+/*********************** Logging mechanism ****************************
+ * For logging, the host may send a streaming request to a certain
+ * profiler.
+ * */
+void collectData(uint None, uint Unused);
+volatile uint streaming; // do we need streaming? initially no!
+void reportToHost(uint arg0, uint arg1);
 
 #endif // PROFILER_H

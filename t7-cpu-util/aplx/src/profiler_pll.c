@@ -245,7 +245,17 @@ void changeFreq(PLL_PART component, uint f)
     }
 }
 
+/* readFreq() is used for collecting data. It is mainly called by
+ * collectData in profiler_events.c
+ * It returns three values: fCPU, fAHB, and fRTR
+ * */
+uint readFreq(uint fAHB, uint fRTR)
+{
 
+
+}
+
+TODO: modify showPLLinfo to use readFreq
 void showPLLinfo(uint arg0, uint arg1)
 {
 	r20 = sc[SC_PLL1];

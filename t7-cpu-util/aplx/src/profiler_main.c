@@ -14,6 +14,8 @@ void init_app()
   // initialize event handler
   init_Handlers();  // see profiler_events.c
 
+  // others:
+  streaming = FALSE;    // by default we silent
   // put version to vcpu->user0 to be detected by host GUI
   sark.vcpu->user0 = PROFILER_VERSION;
 }

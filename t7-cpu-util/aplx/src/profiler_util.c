@@ -93,6 +93,10 @@ void generateProfilerID()
 	}
 
 
+    // then fill-in parts of profiler data
+    myProfile.v = PROFILER_VERSION;
+    myProfile.pID = my_pID;
+
 	/* old version:
 	short id=-1, i;
 

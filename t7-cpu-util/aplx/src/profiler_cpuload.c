@@ -11,7 +11,7 @@
 
 // import variables from other parts
 uchar running_cpu_idle_cntr[18] = {0};
-uchar  stored_cpu_idle_cntr[18] = {0};
+uchar stored_cpu_idle_cntr[18] = {0};
 uint idle_cntr_cntr = 0; //master counter that count up to 100
 
 // the following two variables are just for debugging
