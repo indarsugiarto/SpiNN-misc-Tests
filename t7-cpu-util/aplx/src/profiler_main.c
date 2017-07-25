@@ -17,7 +17,7 @@ void init_app()
   // initialize PLL
   initPLL();
   // test:
-  showPLLinfo(sv->p2p_addr, 0);
+  // showPLLinfo(sv->p2p_addr, 0);
 
   // others:
   streaming = FALSE;    // by default we silent

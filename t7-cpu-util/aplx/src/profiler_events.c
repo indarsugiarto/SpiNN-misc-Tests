@@ -130,7 +130,8 @@ void hSDP(uint mailbox, uint port)
 			{
             // seq structure: byte-1 component, byte-0 frequency
 			PLL_PART comp = (PLL_PART)(msg->seq >> 8);
-			uint f = msg->seq & 0xF;
+            uint f = msg->seq & 0xFF;
+            io_printf(IO_STD, "Request for comp-%d with f=%d\n", comp, f);
             changeFreq(comp, f);
             break;
 			}

@@ -135,7 +135,7 @@ REAL Sfreq, Rfreq, Mfreq, Bfreq, Afreq;
 static void changePLL(uint flag);
 static void getFreqParams(uint f, uint *ms, uint *ns);
 REAL getFreq(uchar sel, uchar dv);	            // for displaying purpose only (decimal number)
-void get_FR_str(uchar fr);
+void get_FR_str(uchar fr, char *stream);
 uint readCoreFreqVal();
 char *selName(uchar s);
 
@@ -218,7 +218,7 @@ void changeFreq(PLL_PART component, uint f)
         }
         else if(f==173){
             r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
-            r24 |= (0x6 << 20); //set Sdiv = 3 and "Sys" = 2
+            r24 |= (0xA << 20); //set Sdiv = 3 and "Sys" = 2
             sc[SC_CLKMUX] = r24;
 			myProfile.ahb_freq = 173;
         }
@@ -233,14 +233,14 @@ void changeFreq(PLL_PART component, uint f)
         // here the only possible value is 130 or 173.33
         if(f==130) {
             // the Router
-            r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
+            r24 &= 0xFFF87FFF; //clear "Sdiv" and "Sys"
             r24 |= (0xE << 15); //set Rdiv = 4 and "Rtr" = 2
             sc[SC_CLKMUX] = r24;
 			myProfile.rtr_freq = 130;
         }
         else if(f==173){
-            r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
-            r24 |= (0xE << 15); //set Rdiv = 3 and "Rtr" = 2
+            r24 &= 0xFFF87FFF; //clear "Sdiv" and "Sys"
+            r24 |= (0xA << 15); //set Rdiv = 3 and "Rtr" = 2
             sc[SC_CLKMUX] = r24;
 			myProfile.rtr_freq = 173;
         }
@@ -288,7 +288,7 @@ void showPLLinfo(uint output, uint arg1)
 	r21 = sc[SC_PLL2];
 	r24 = sc[SC_CLKMUX];
 
-	io_printf(IO_BUF, "Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
+    io_printf(stream, "Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
 
 	FR1 = (r20 >> 16) & 3;
 	MS1 = (r20 >> 8) & 0x3F;
@@ -323,17 +323,17 @@ void showPLLinfo(uint output, uint arg1)
 	io_printf(stream, "Reading registers directly...\n");
 	io_printf(stream, "PLL-1\n");
 	io_printf(stream, "----------------------------\n");
-	io_printf(stream, "Frequency range      : "); get_FR_str(FR1);
+    io_printf(stream, "Frequency range      : "); get_FR_str(FR1, stream);
 	io_printf(stream, "Output clk divider   : %u\n", MS1);
 	io_printf(stream, "Input clk multiplier : %u\n\n", NS1);
 
 	io_printf(stream, "PLL-2\n");
 	io_printf(stream, "----------------------------\n");
-	io_printf(stream, "Frequency range      : "); get_FR_str(FR2);
+    io_printf(stream, "Frequency range      : "); get_FR_str(FR2, stream);
 	io_printf(stream, "Output clk divider   : %u\n", MS2);
 	io_printf(stream, "Input clk multiplier : %u\n\n", NS2);
 
-	io_printf(stream, "Multiplerxer\n");
+    io_printf(stream, "Multiplexer\n");
 	io_printf(stream, "----------------------------\n");
 	io_printf(stream, "System AHB clk divisor  : %u\n", Sdiv);
 	io_printf(stream, "System AHB clk selector : %u (%s)\n", Sys_sel, selName(Sys_sel));
@@ -421,21 +421,21 @@ REAL getFreq(uchar sel, uchar dv)
  * NOTE: The MS and NS bits seem to be independent of this bits, i.e., MS and NS
  * can produce frequencies beyond the max specified in this FR-bits.
  * */
-void get_FR_str(uchar fr)
+void get_FR_str(uchar fr, char *stream)
 {
     sark_delay_us(1000);
     switch(fr) {
     case 0:
-        io_printf(IO_BUF, "25-50 MHz\n"); 
+        io_printf(stream, "25-50 MHz\n");
         break;
     case 1:
-    io_printf(IO_BUF, "50-100 MHz\n"); 
+    io_printf(stream, "50-100 MHz\n");
         break;
     case 2:
-    io_printf(IO_BUF, "100-200 MHz\n"); 
+    io_printf(stream, "100-200 MHz\n");
         break;
     case 3:
-    io_printf(IO_BUF, "200-400 MHz\n"); 
+    io_printf(stream, "200-400 MHz\n");
         break;
     }
 
@@ -501,21 +501,26 @@ void changePLL(uint flag)
         // the System AHB
         r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
         r24 |= (0xE << 20); //set Sdiv = 4 and "Sys" = 2
-		sc[SC_CLKMUX] = r24;
+        //r24 |= (0x6 << 20); //set Sdiv = 2 and "Sys" = 2
+        //sc[SC_CLKMUX] = r24;
 		// the Router
-        r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
+        r24 &= 0xFFF87FFF; //clear "Rdiv" and "Rys"
         r24 |= (0xE << 15); //set Rdiv = 4 and "Rtr" = 2
-		sc[SC_CLKMUX] = r24;
+        //r24 |= (0x6 << 15); //set Rdiv = 2 and "Rtr" = 2
+        //sc[SC_CLKMUX] = r24;
 		// the SDRAM
         r24 &= 0xFFFFC3FF; // clear "Mdiv" and "Mem"
         r24 |= (0x6 << 10); // set Mdiv = 2 and Mem = 2
+        //r24 |= (0x2 << 10); // set Mdiv = 1 and Mem = 2
         sc[SC_CLKMUX] = r24;
 
 #if(DEBUG_LEVEL>0)
 		io_printf(stream, "PLL-2 will be set to 520MHz\n");
 #endif
+        r21 = sc[SC_PLL2];
         r21 &= 0xFFFFC0C0;            // apply masking at MS and NS
         r21 |= 52;                    // apply NS
+        //r21 |= 26;                    // apply NS
         r21 |= (1 << 8);              // apply MS
         sc[SC_PLL2] = r21;            // change the value of r20 with the new parameters
     }

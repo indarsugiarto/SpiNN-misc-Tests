@@ -4,6 +4,13 @@ APLX=profiler.aplx
 BIN_DIR=../bin
 make
 
+if [ $1=="-c" ]; then
+  echo "[INFO] Cleaning previous build..."
+  make clean
+fi
+
+make
+
 if [ -e $APLX ]; then
   if [ ! -d $BIN_DIR ]; then
     echo "[INFO] Creating bin directory..."
