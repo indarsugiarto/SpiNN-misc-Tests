@@ -14,6 +14,11 @@ void init_app()
   // initialize event handler
   init_Handlers();  // see profiler_events.c
 
+  // initialize PLL
+  initPLL();
+  // test:
+  showPLLinfo(sv->p2p_addr, 0);
+
   // others:
   streaming = FALSE;    // by default we silent
   // put version to vcpu->user0 to be detected by host GUI

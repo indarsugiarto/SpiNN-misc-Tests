@@ -52,7 +52,7 @@
 #include <spin1_api.h>
 #include <stdfix.h>
 
-#define DEBUG_LEVEL					0
+#define DEBUG_LEVEL					1
 
 /*--------- Some functionalities needs fix point representation ----------*/
 #define REAL						accum
@@ -90,10 +90,11 @@ typedef struct pro_info {
     ushort  temp1;         // from sensor-1, for arg2
     ushort temp3;         // from sensor-3, for arg2
     uint memfree;       // optional, sdram free (in bytes), in arg3
-    uchar load[18];
+	//uchar load[18];
 } pro_info_t;
 
 pro_info_t myProfile;
+ushort my_pID;
 
 /*====================== PLL-related Functions =======================*/
 
@@ -102,14 +103,15 @@ typedef enum PLL_COMP_e PLL_PART;
 
 void initPLL();                             // set PLLs to fine-grained mode
 void changeFreq(PLL_PART component, uint f);
-void showPLLinfo(uint arg0, uint arg1);
+void showPLLinfo(uint output, uint arg1);
 void revertPLL();                           // return back PLL configuration
-uint readFreq(uint fAHB, uint fRTR);        // return three values
-uint curr_freq;                             // current cpu frequency
-
+uchar readFreq(uchar *fAHB, uchar *fRTR);		// read freqs of three components
 
 
 /*====================== CPUidle-related Functions =======================*/
+uchar running_cpu_idle_cntr[18];
+uchar stored_cpu_idle_cntr[18];
+uint idle_cntr_cntr; //master counter that count up to 100
 void init_idle_cntr();
 
 
@@ -136,6 +138,5 @@ uchar getNumActiveCores();
  * */
 void collectData(uint None, uint Unused);
 volatile uint streaming; // do we need streaming? initially no!
-void reportToHost(uint arg0, uint arg1);
 
 #endif // PROFILER_H

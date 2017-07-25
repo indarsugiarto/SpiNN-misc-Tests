@@ -36,7 +36,6 @@ static uchar profIDTable[lnIDTable][wdIDTable] = {
  *    can interpret the incoming profiler data correctly.
 */
 
-ushort my_pID;
 ushort *pID_list;   // profiler ID list
 ushort nChips;		// number of chips in the system
 
@@ -51,11 +50,12 @@ void generateProfilerID()
 		pID_list = sark_xalloc(sv->sdram_heap, 65536, 0, ALLOC_LOCK);
 
 		my_pID = 0;
+		pID_list[0] = sv->p2p_addr;
 		// the following is a slow process
 		nChips = 1; // the root profiler
 		for(r=1; r<=0xFFFF; r++) {
 			dest = rtr_p2p_get(r);
-			if(r != 6) {
+			if(dest != 6) {
 				pID_list[nChips] = r; // r can be extracted using CHIP_X() CHIP_Y()
 				nChips++;
 			}
@@ -77,8 +77,8 @@ void generateProfilerID()
 		nChips = 0;
 		for(r=0; r<=0xFFFF; r++) {
 			dest = rtr_p2p_get(r);
-			if(r != 6) {
-				if(r == 7) {
+			if(dest != 6) {
+				if(dest == 7) {
 					my_pID = nChips;
 					break;
 				}

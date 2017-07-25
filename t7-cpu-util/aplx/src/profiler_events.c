@@ -88,7 +88,14 @@ void init_Handlers()
  * */
 void collectData(uint None, uint Unused)
 {
-
+	myProfile.cpu_freq = readFreq(&myProfile.ahb_freq, &myProfile.rtr_freq);
+	myProfile.nActive = getNumActiveCores();
+	myProfile.temp3 = readTemp();
+	myProfile.temp1 = tempVal[0];
+	sark_mem_cpy((void *)&reportMsg.cmd_rc, (void *)&myProfile, sizeof(pro_info_t));
+	sark_mem_cpy((void *)reportMsg.data, (void *)stored_cpu_idle_cntr, 18);
+	if(streaming==FALSE) return;
+	spin1_send_sdp_msg (&reportMsg, DEF_TIMEOUT);
 }
 
 void hTimer(uint tick, uint Unused)
@@ -107,23 +114,6 @@ void hMCPL(uint key, uint payload)
     */
 }
 
-/* reportToHost() might be called profiler_cpuload
- * but will only active when streaming is on
- * */
-void reportToHost(uint arg0, uint arg1)
-{
-    if(streaming==FALSE) return;
-    // put in seg, arg1, arg2, and arg3
-    reportMsg.seq++;
-	/* how to read board temperature? via BMP?
-    report.arg1 = tempVal[0];
-    report.arg2 = tempVal[1];
-    report.arg3 = tempVal[2]; */
-    sark_mem_cpy((void *)&reportMsg.data, (void *)proData, sizeof(proData));
-    spin1_send_sdp_msg (&reportMsg, DEF_TIMEOUT);
-    io_printf(IO_BUF, "Reporting-%d to host...\n", reportMsg.seq);
-}
-
 void hSDP(uint mailbox, uint port)
 {
      sdp_msg_t *msg = (sdp_msg_t *) mailbox;
@@ -137,13 +127,15 @@ void hSDP(uint mailbox, uint port)
             streaming = TRUE;
             break;
         case HOST_SET_FREQ_VALUE:
+			{
             // seq structure: byte-1 component, byte-0 frequency
-            PLL_PART comp = (PLL_PART)(seq >> 8);
-            uint f = seq & 0xF;
+			PLL_PART comp = (PLL_PART)(msg->seq >> 8);
+			uint f = msg->seq & 0xF;
             changeFreq(comp, f);
             break;
-        }
-    }
+			}
+		}
+	}
     // use DEF_INTERNAL_SDP_PORT for internal (inter-chip) communication
     // such as with monitor core for SCP
     else if(port==DEF_INTERNAL_SDP_PORT){

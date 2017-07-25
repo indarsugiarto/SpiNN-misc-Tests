@@ -12,6 +12,9 @@
 #include <math.h>
 #include "profiler.h"
 
+#define PLL_MODE_ORG	0	// normal/original mode
+#define PLL_MODE_EXC	1	// exclusive mode
+
 
 #define lnMemTable					93
 #define wdMemTable					3
@@ -158,7 +161,7 @@ void initPLL()
     _r21 = sc[SC_PLL2];
 
     // change PLL to exclusive mode
-    changePLL(1);
+	changePLL(PLL_MODE_EXC);
     isModified = TRUE;
 }
 
@@ -178,8 +181,8 @@ void initPLL()
 void changeFreq(PLL_PART component, uint f)
 {
     if(isModified==FALSE) {
-#if(DEBUG_LEVEL>0
-        io_printf(IOBUF, "[ERR] Not available!\n");
+#if(DEBUG_LEVEL>0)
+		io_printf(IO_BUF, "[ERR] Not available!\n");
 #endif
         return;
     }
@@ -191,8 +194,8 @@ void changeFreq(PLL_PART component, uint f)
         uint ms = 0;
         getFreqParams(f, &ms, &ns);
         if(ms==0 && ns==0) { //not found in table
-#if(DEBUG_LEVEL>0
-        io_printf(IOBUF, "[ERR] Not available!\n");
+#if(DEBUG_LEVEL>0)
+		io_printf(IO_BUF, "[ERR] Not available!\n");
 #endif
             return;
         }
@@ -202,7 +205,7 @@ void changeFreq(PLL_PART component, uint f)
         r20 |= (ms << 8);            // apply MS
         sc[SC_PLL1] = r20;            // change the value of r20 with the new parameters
 
-        curr_freq = f;
+		myProfile.cpu_freq = (uchar)f;
     }
     else if(component==PLL_AHB) {         // for system AHB
         r24 = sc[SC_CLKMUX];
@@ -211,15 +214,17 @@ void changeFreq(PLL_PART component, uint f)
             r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
             r24 |= (0xE << 20); //set Sdiv = 4 and "Sys" = 2
             sc[SC_CLKMUX] = r24;
+			myProfile.ahb_freq = 130;
         }
         else if(f==173){
             r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
             r24 |= (0x6 << 20); //set Sdiv = 3 and "Sys" = 2
             sc[SC_CLKMUX] = r24;
+			myProfile.ahb_freq = 173;
         }
         else {
-#if(DEBUG_LEVEL>0
-        io_printf(IOBUF, "[ERR] Not available!\n");
+#if(DEBUG_LEVEL>0)
+		io_printf(IO_BUF, "[ERR] Not available!\n");
 #endif
         }
     }
@@ -231,15 +236,17 @@ void changeFreq(PLL_PART component, uint f)
             r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
             r24 |= (0xE << 15); //set Rdiv = 4 and "Rtr" = 2
             sc[SC_CLKMUX] = r24;
+			myProfile.rtr_freq = 130;
         }
         else if(f==173){
             r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
             r24 |= (0xE << 15); //set Rdiv = 3 and "Rtr" = 2
             sc[SC_CLKMUX] = r24;
+			myProfile.rtr_freq = 173;
         }
         else {
-#if(DEBUG_LEVEL>0
-        io_printf(IOBUF, "[ERR] Not available!\n");
+#if(DEBUG_LEVEL>0)
+		io_printf(IO_BUF, "[ERR] Not available!\n");
 #endif
         }
     }
@@ -249,15 +256,34 @@ void changeFreq(PLL_PART component, uint f)
  * collectData in profiler_events.c
  * It returns three values: fCPU, fAHB, and fRTR
  * */
-uint readFreq(uint fAHB, uint fRTR)
+uchar readFreq(uchar *fAHB, uchar *fRTR)
 {
+	r20 = sc[SC_PLL1];
+	r21 = sc[SC_PLL2];
+	r24 = sc[SC_CLKMUX];
 
+	Sdiv = ((r24 >> 22) & 3) + 1;
+	Sys_sel = (r24 >> 20) & 3;
+	Rdiv = ((r24 >> 17) & 3) + 1;
+	Rtr_sel = (r24 >> 15) & 3;
+	Bdiv = ((r24 >> 7) & 3) + 1;
+	Pb = (r24 >> 5) & 3;
 
+	Sfreq = getFreq(Sys_sel, Sdiv);
+	Rfreq = getFreq(Rtr_sel, Rdiv);
+	Bfreq = getFreq(Pb, Bdiv);
+	*fAHB = (uchar)Sfreq;
+	*fRTR = (uchar)Rfreq;
+	return (uchar)Bfreq;
 }
 
-TODO: modify showPLLinfo to use readFreq
-void showPLLinfo(uint arg0, uint arg1)
+/* showPLLinfo()
+ * /param stream, 0=IO_STD, others=IO_BUF
+ *
+ * */
+void showPLLinfo(uint output, uint arg1)
 {
+	char *stream = output==0?IO_STD:IO_BUF;
 	r20 = sc[SC_PLL1];
 	r21 = sc[SC_PLL2];
 	r24 = sc[SC_CLKMUX];
@@ -288,50 +314,50 @@ void showPLLinfo(uint arg0, uint arg1)
 	Bfreq = getFreq(Pb, Bdiv);
 	Afreq = getFreq(Pa, Adiv);
 
-	io_printf(IO_BUF, "************* CLOCK INFORMATION **************\n");
-	io_printf(IO_BUF, "Reading sark library...\n");
-	io_printf(IO_BUF, "Clock divisors for system & router bus: %u\n", sv->clk_div);
-	io_printf(IO_BUF, "CPU clock in MHz   : %u\n", sv->cpu_clk);
-	io_printf(IO_BUF, "SDRAM clock in MHz : %u\n\n", sv->mem_clk);
+	io_printf(stream, "************* CLOCK INFORMATION **************\n");
+	io_printf(stream, "Reading sark library...\n");
+	io_printf(stream, "Clock divisors for system & router bus: %u\n", sv->clk_div);
+	io_printf(stream, "CPU clock in MHz   : %u\n", sv->cpu_clk);
+	io_printf(stream, "SDRAM clock in MHz : %u\n\n", sv->mem_clk);
 
-	io_printf(IO_BUF, "Reading registers directly...\n");
-	io_printf(IO_BUF, "PLL-1\n");
-	io_printf(IO_BUF, "----------------------------\n");
-	io_printf(IO_BUF, "Frequency range      : "); get_FR_str(FR1);
-	io_printf(IO_BUF, "Output clk divider   : %u\n", MS1);
-	io_printf(IO_BUF, "Input clk multiplier : %u\n\n", NS1);
+	io_printf(stream, "Reading registers directly...\n");
+	io_printf(stream, "PLL-1\n");
+	io_printf(stream, "----------------------------\n");
+	io_printf(stream, "Frequency range      : "); get_FR_str(FR1);
+	io_printf(stream, "Output clk divider   : %u\n", MS1);
+	io_printf(stream, "Input clk multiplier : %u\n\n", NS1);
 
-	io_printf(IO_BUF, "PLL-2\n");
-	io_printf(IO_BUF, "----------------------------\n");
-	io_printf(IO_BUF, "Frequency range      : "); get_FR_str(FR2);
-	io_printf(IO_BUF, "Output clk divider   : %u\n", MS2);
-	io_printf(IO_BUF, "Input clk multiplier : %u\n\n", NS2);
+	io_printf(stream, "PLL-2\n");
+	io_printf(stream, "----------------------------\n");
+	io_printf(stream, "Frequency range      : "); get_FR_str(FR2);
+	io_printf(stream, "Output clk divider   : %u\n", MS2);
+	io_printf(stream, "Input clk multiplier : %u\n\n", NS2);
 
-	io_printf(IO_BUF, "Multiplerxer\n");
-	io_printf(IO_BUF, "----------------------------\n");
-	io_printf(IO_BUF, "System AHB clk divisor  : %u\n", Sdiv);
-	io_printf(IO_BUF, "System AHB clk selector : %u (%s)\n", Sys_sel, selName(Sys_sel));
-	io_printf(IO_BUF, "System AHB clk freq     : %k MHz\n", Sfreq);
-	io_printf(IO_BUF, "Router clk divisor      : %u\n", Rdiv);
-	io_printf(IO_BUF, "Router clk selector     : %u (%s)\n", Rtr_sel, selName(Rtr_sel));
-	io_printf(IO_BUF, "Router clk freq         : %k MHz\n", Rfreq);
-	io_printf(IO_BUF, "SDRAM clk divisor       : %u\n", Mdiv);
-	io_printf(IO_BUF, "SDRAM clk selector      : %u (%s)\n", Mem_sel, selName(Mem_sel));
-	io_printf(IO_BUF, "SDRAM clk freq          : %k MHz\n", Mfreq);
-	io_printf(IO_BUF, "CPU-B clk divisor       : %u\n", Bdiv);
-	io_printf(IO_BUF, "CPU-B clk selector      : %u (%s)\n", Pb, selName(Pb));
-	io_printf(IO_BUF, "CPU-B clk freq          : %k MHz\n", Bfreq);
-	io_printf(IO_BUF, "CPU-A clk divisor       : %u\n", Adiv);
-	io_printf(IO_BUF, "CPU-A clk selector      : %u (%s)\n", Pa, selName(Pa));
-	io_printf(IO_BUF, "CPU-A clk freq          : %k MHz\n", Afreq);
-	io_printf(IO_BUF, "**********************************************\n\n\n");
+	io_printf(stream, "Multiplerxer\n");
+	io_printf(stream, "----------------------------\n");
+	io_printf(stream, "System AHB clk divisor  : %u\n", Sdiv);
+	io_printf(stream, "System AHB clk selector : %u (%s)\n", Sys_sel, selName(Sys_sel));
+	io_printf(stream, "System AHB clk freq     : %k MHz\n", Sfreq);
+	io_printf(stream, "Router clk divisor      : %u\n", Rdiv);
+	io_printf(stream, "Router clk selector     : %u (%s)\n", Rtr_sel, selName(Rtr_sel));
+	io_printf(stream, "Router clk freq         : %k MHz\n", Rfreq);
+	io_printf(stream, "SDRAM clk divisor       : %u\n", Mdiv);
+	io_printf(stream, "SDRAM clk selector      : %u (%s)\n", Mem_sel, selName(Mem_sel));
+	io_printf(stream, "SDRAM clk freq          : %k MHz\n", Mfreq);
+	io_printf(stream, "CPU-B clk divisor       : %u\n", Bdiv);
+	io_printf(stream, "CPU-B clk selector      : %u (%s)\n", Pb, selName(Pb));
+	io_printf(stream, "CPU-B clk freq          : %k MHz\n", Bfreq);
+	io_printf(stream, "CPU-A clk divisor       : %u\n", Adiv);
+	io_printf(stream, "CPU-A clk selector      : %u (%s)\n", Pa, selName(Pa));
+	io_printf(stream, "CPU-A clk freq          : %k MHz\n", Afreq);
+	io_printf(stream, "**********************************************\n\n\n");
 }
 
 
 void revertPLL()
 {
 	// change PLL back to its original value
-	changePLL(0);
+	changePLL(PLL_MODE_ORG);
 	isModified = FALSE;
 }
 
@@ -465,24 +491,28 @@ void changePLL(uint flag)
 
          ***********************/
 #if(DEBUG_LEVEL>0)
-        io_printf(IO_BUF, "System AHB and Router is set to PLL2\n");
-        io_printf(IO_BUF, "System AHB and Router divisor will be changed to 4\n");
-        io_printf(IO_BUF, "SDRAM divisor will be change to 2\n");
-        io_printf(IO_BUF, "PLL-2 will be set to 520MHz\n";
+		char *stream;
+		if(sv->p2p_addr==0) stream = IO_STD; else stream = IO_BUF;
+		io_printf(stream, "System AHB and Router is set to PLL2\n");
+		io_printf(stream, "System AHB and Router divisor will be changed to 4\n");
+		io_printf(stream, "SDRAM divisor will be change to 2\n");
+		io_printf(stream, "PLL-2 will be set to 520MHz\n");
 #endif
         // the System AHB
         r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
         r24 |= (0xE << 20); //set Sdiv = 4 and "Sys" = 2
-        // the Router
+		sc[SC_CLKMUX] = r24;
+		// the Router
         r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
         r24 |= (0xE << 15); //set Rdiv = 4 and "Rtr" = 2
-        // the SDRAM
+		sc[SC_CLKMUX] = r24;
+		// the SDRAM
         r24 &= 0xFFFFC3FF; // clear "Mdiv" and "Mem"
         r24 |= (0x6 << 10); // set Mdiv = 2 and Mem = 2
         sc[SC_CLKMUX] = r24;
 
 #if(DEBUG_LEVEL>0)
-        io_printf(IO_BUF, "PLL-2 will be set to 520MHz\n";
+		io_printf(stream, "PLL-2 will be set to 520MHz\n");
 #endif
         r21 &= 0xFFFFC0C0;            // apply masking at MS and NS
         r21 |= 52;                    // apply NS
