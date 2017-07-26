@@ -76,6 +76,34 @@
 #define IDLE_PRIORITY_VAL			LOWEST_PRIORITY_VAL
 #define SCHEDULED_PRIORITY_VAL      1
 
+
+/*--------------------- routing mechanism ------------------------*/
+/*
+#define MCPL_BCAST_REQ_UPDATE 				0xbca50001	// broadcast from root to all other profilers
+#define MCPL_PROFILERS_REPORT_PART1			0x21ead100	// go to leader in chip-0
+#define MCPL_PROFILERS_REPORT_PART2			0x21ead200	// go to leader in chip-0
+#define MCPL_GLOBAL_TICK					MCPL_BCAST_REQ_UPDATE	// just an alias
+*/
+
+/*------------------- SDP-related parameters ---------------------*/
+#define DEF_REPORT_TAG              3
+#define DEF_REPORT_PORT				40003
+#define DEF_ERR_INFO_TAG			4
+#define DEF_ERR_INFO_PORT			40004
+#define DEF_INTERNAL_SDP_PORT		1
+#define DEF_HOST_SDP_PORT           7		// port-7 has a special purpose, usually related with ETH
+#define DEF_TIMEOUT					10		// as recommended
+
+// scp sent by host, related to frequecy/PLL
+#define HOST_REQ_PLL_INFO			1
+#define HOST_REQ_INIT_PLL			2		// host request special PLL configuration
+#define HOST_REQ_REVERT_PLL			3
+#define HOST_SET_FREQ_VALUE			4		// Note: HOST_SET_FREQ_VALUE assumes that CPUs use PLL1,
+											// if this is not the case, then use HOST_SET_CHANGE_PLL
+#define HOST_REQ_PROFILER_STREAM		5		// host send this to a particular profiler to start streaming
+
+
+
 /*--------------------- Reporting Data Structure -------------------------*/
 /* The idea is: since this version uses slow recording, then each profiler
  * can report directly to host-PC via SDP.

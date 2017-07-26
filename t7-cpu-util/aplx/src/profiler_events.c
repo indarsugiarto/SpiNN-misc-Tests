@@ -1,31 +1,6 @@
 #include <math.h>
 #include "profiler.h"
 
-/*--------------------- routing mechanism ------------------------*/
-/*
-#define MCPL_BCAST_REQ_UPDATE 				0xbca50001	// broadcast from root to all other profilers
-#define MCPL_PROFILERS_REPORT_PART1			0x21ead100	// go to leader in chip-0
-#define MCPL_PROFILERS_REPORT_PART2			0x21ead200	// go to leader in chip-0
-#define MCPL_GLOBAL_TICK					MCPL_BCAST_REQ_UPDATE	// just an alias
-*/
-
-/*------------------- SDP-related parameters ---------------------*/
-#define DEF_REPORT_TAG              3
-#define DEF_REPORT_PORT				40003
-#define DEF_ERR_INFO_TAG			4
-#define DEF_ERR_INFO_PORT			40004
-#define DEF_INTERNAL_SDP_PORT		1
-#define DEF_HOST_SDP_PORT           7		// port-7 has a special purpose, usually related with ETH
-#define DEF_TIMEOUT					10		// as recommended
-
-// scp sent by host, related to frequecy/PLL
-#define HOST_REQ_PLL_INFO			1
-#define HOST_REQ_INIT_PLL			2		// host request special PLL configuration
-#define HOST_REQ_REVERT_PLL			3
-#define HOST_SET_FREQ_VALUE			4		// Note: HOST_SET_FREQ_VALUE assumes that CPUs use PLL1,
-                                            // if this is not the case, then use HOST_SET_CHANGE_PLL
-#define HOST_REQ_PROFILER_STREAM		5		// host send this to a particular profiler to start streaming
-
 // iptag
 // IPTAG definitions from scamp:
 #define IPTAG_NEW		0
@@ -34,8 +9,7 @@
 #define IPTAG_CLR		3
 #define IPTAG_TTO		4
 
-#define SDP_DEF_HOST_IP				    0x02F0A8C0	// 192.168.240.2, dibalik!
-#define SDP_IP_TAG_REPORTING        1
+//#define SDP_DEF_HOST_IP				    0x02F0A8C0	// 192.168.240.2, dibalik!
 
 
 // sdp container
@@ -117,6 +91,9 @@ void hMCPL(uint key, uint payload)
 void hSDP(uint mailbox, uint port)
 {
      sdp_msg_t *msg = (sdp_msg_t *) mailbox;
+#if(DEBUG_LEVEL>2)
+	io_printf(IO_STD, "[INFO] incoming sdp on port-%d\n", port);
+#endif
     // use DEF_HOST_SDP_PORT for communication with the host via eth
     if(port==DEF_HOST_SDP_PORT) {
         switch(msg->cmd_rc) {
@@ -124,14 +101,24 @@ void hSDP(uint mailbox, uint port)
             spin1_schedule_callback(showPLLinfo, 0, 0, SCHEDULED_PRIORITY_VAL);
             break;
         case HOST_REQ_PROFILER_STREAM:
-            streaming = TRUE;
+			// then use seq to determine: 0 stop, 1 start
+			if(msg->seq==0) {
+				io_printf(IO_STD, "[INFO] Streaming off...\n");
+				streaming = FALSE;
+			}
+			else {
+				io_printf(IO_STD, "[INFO] Streaming on...\n");
+				streaming = TRUE;
+			}
             break;
         case HOST_SET_FREQ_VALUE:
 			{
             // seq structure: byte-1 component, byte-0 frequency
 			PLL_PART comp = (PLL_PART)(msg->seq >> 8);
             uint f = msg->seq & 0xFF;
-            io_printf(IO_STD, "Request for comp-%d with f=%d\n", comp, f);
+#if(DEBUG_LEVEL>0)
+			io_printf(IO_STD, "[INFO] Request for comp-%d with f=%d\n", comp, f);
+#endif
             changeFreq(comp, f);
             break;
 			}
@@ -141,7 +128,7 @@ void hSDP(uint mailbox, uint port)
     // such as with monitor core for SCP
     else if(port==DEF_INTERNAL_SDP_PORT){
         if(msg->cmd_rc==0x80){ // CMD_OK from previous request
-            //hostIP = msg->arg1;
+			//hostIP = msg->arg1;
             spin1_schedule_callback(initIPTag, msg->arg1, 0, SCHEDULED_PRIORITY_VAL);
         }
     }
@@ -207,12 +194,12 @@ void init_sdp_container()
 
     // prepare IPtagging mechanism, only if I'm root
 	if(sv->p2p_addr==0) {
-        iptag.flags = 0x07;	// no replay
+		iptag.flags = 0x87;	// initially needed for iptag triggering
         iptag.tag = 0;		// internal
         iptag.srce_addr = sv->p2p_addr;
         iptag.srce_port = (DEF_INTERNAL_SDP_PORT << 5) + (uchar)sark_core_id();	// use port-7
         iptag.dest_addr = sv->p2p_addr;
-        iptag.dest_port = 0;				// send to "root"
+		iptag.dest_port = 0;				// send to "root" (scamp)
         iptag.cmd_rc = CMD_IPTAG;
         iptag.arg1 = (IPTAG_GET << 16) + 0; // target iptag-0
         iptag.arg2 = 1; //remember, scamp use this for some reason
@@ -225,6 +212,9 @@ void initiateIPTagReading(uint arg1, uint arg2)
     // only root profiler needs this
     // the result should be read through hSDP
     if(sv->p2p_addr==0) {
+#if(DEBUG_LEVEL>0)
+		io_printf(IO_STD, "[INFO] Initiate iptagging...\n");
+#endif
         spin1_send_sdp_msg(&iptag, DEF_TIMEOUT);
     }
 }
@@ -234,13 +224,22 @@ void initIPTag(uint hostIP, uint Unused)
 {
     // only chip <0,0>
     if(sv->p2p_addr==0) {
+#if(DEBUG_LEVEL>0)
+		io_printf(IO_STD, "[INFO] Setting iptag-%d for port-%d\n",
+				  DEF_REPORT_TAG, DEF_REPORT_PORT);
+#endif
         // set the report tag
+		iptag.flags = 7;
         iptag.arg1 = (IPTAG_SET << 16) + DEF_REPORT_TAG;
         iptag.arg2 = DEF_REPORT_PORT;
         //iptag.arg3 = SDP_DEF_HOST_IP;
         iptag.arg3 = hostIP;
         spin1_send_sdp_msg(&iptag, DEF_TIMEOUT);
-        // set the generic error info tag (for debugging)
+#if(DEBUG_LEVEL>0)
+		io_printf(IO_STD, "[INFO] Setting iptag-%d for port-%d\n",
+				  DEF_ERR_INFO_TAG, DEF_ERR_INFO_PORT);
+#endif
+		// set the generic error info tag (for debugging)
         iptag.arg1 = (IPTAG_SET << 16) + DEF_ERR_INFO_TAG;
         iptag.arg2 = DEF_ERR_INFO_PORT;
         spin1_send_sdp_msg(&iptag, DEF_TIMEOUT);

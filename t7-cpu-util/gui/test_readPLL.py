@@ -14,11 +14,11 @@ HOST_REQ_PROFILER_STREAM = 5		#// host send this to a particular profiler to sta
 DEF_PROFILER_CORE = 1
 DEF_HOST_SDP_PORT = 7		#// port-7 has a special purpose, usually related with ETH
 
-DEF_HOST = '192.168.240.253'
+DEF_HOST = '192.168.240.1'
 DEF_SEND_PORT = 17893
 
 # We can use sendSDP to control frequency, getting virtual core map, etc
-def sendSDP(flags, tag, dp, dc, dax, day, cmd, seq, arg1, arg2, arg3, bArray):
+def sendSDP(ip, flags, tag, dp, dc, dax, day, cmd, seq, arg1, arg2, arg3, bArray):
     """
     The detail experiment with sendSDP() see mySDPinger.py
     """
@@ -35,19 +35,21 @@ def sendSDP(flags, tag, dp, dc, dax, day, cmd, seq, arg1, arg2, arg3, bArray):
         sdp = pad + hdr + scp
 
     CmdSock = QtNetwork.QUdpSocket()
-    CmdSock.writeDatagram(sdp, QtNetwork.QHostAddress(DEF_HOST), DEF_SEND_PORT)
+    #CmdSock.writeDatagram(sdp, QtNetwork.QHostAddress(DEF_HOST), DEF_SEND_PORT)
+    CmdSock.writeDatagram(sdp, QtNetwork.QHostAddress(ip), DEF_SEND_PORT)
     return sdp
 
 if __name__=="__main__":
-    if len(sys.argv) != 3:
-        print "Usage ./test_readPLL chipX chipY"
+    if len(sys.argv) != 4:
+        print "Usage ./test_readPLL machine_ip chipX chipY"
     else:
-        dax = int(sys.argv[1])
-        day = int(sys.argv[2])
+        dax = int(sys.argv[2])
+        day = int(sys.argv[3])
+        ip = sys.argv[1]
         cmd_rc = HOST_REQ_PLL_INFO
         dp = DEF_HOST_SDP_PORT
         dc = DEF_PROFILER_CORE
-        sendSDP(7, 0, dp, dc, dax, day, cmd_rc, 0, 0, 0, 0,None)
+        sendSDP(ip, 7, 0, dp, dc, dax, day, cmd_rc, 0, 0, 0, 0,None)
         print "Request for PLL info is sent!"
 
 

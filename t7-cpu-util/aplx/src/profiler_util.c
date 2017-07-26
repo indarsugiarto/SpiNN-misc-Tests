@@ -62,7 +62,7 @@ void generateProfilerID()
 		}
 
 #if(DEBUG_LEVEL>0)
-		io_printf(IO_BUF, "Found %d-chips in the system\n", nChips);
+		io_printf(IO_STD, "[INFO] Found %d-chips in the system\n", nChips);
 		ushort XY;
 		for(ushort i=0; i<nChips; i++) {
 			XY = pID_list[i];
@@ -88,7 +88,7 @@ void generateProfilerID()
 			}
 		}
 #if(DEBUG_LEVEL>0)
-		io_printf(IO_BUF, "My pID = %d\n", my_pID);
+		io_printf(IO_BUF, "[INFO] My pID = %d\n", my_pID);
 #endif
 	}
 

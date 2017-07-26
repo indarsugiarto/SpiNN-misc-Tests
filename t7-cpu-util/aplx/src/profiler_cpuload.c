@@ -20,11 +20,13 @@ INT_HANDLER hSlowTimer (void)
   dma[DMA_GCTL] = 0x7FFFFFFF; // clear bit[31] of dma GCTL
 
 #if(DEBUG_LEVEL>0)
-  tick++;
-  if(tick >= 10000) {
-    //if run too long, it make RTE:
-    io_printf(IO_BUF, "tick-%d\n", tick_cnt);
-    tick = 0; tick_cnt++;
+  if(sv->p2p_addr==0) {
+	  tick++;
+	  if(tick >= 10000) {
+		//if run too long, it make RTE:
+		io_printf(IO_BUF, "tick-%d\n", tick_cnt);
+		tick = 0; tick_cnt++;
+	  }
   }
 #endif
   if(++idle_cntr_cntr>100) {
@@ -99,7 +101,8 @@ void init_idle_cntr()
 		stored_cpu_idle_cntr[i] = 0;
 	}
 	idle_cntr_cntr = 0; //master counter that count up to 100
-	sark_vic_set (SLOT_FIQ, SLOW_CLK_INT, 1, hSlowTimer);
+	//sark_vic_set (SLOT_FIQ, SLOW_CLK_INT, 1, hSlowTimer);
+	sark_vic_set (SLOT_10, SLOW_CLK_INT, 1, hSlowTimer);
     spin1_callback_on(USER_EVENT, print_cntr, 1);
 }
 

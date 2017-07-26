@@ -288,7 +288,7 @@ void showPLLinfo(uint output, uint arg1)
 	r21 = sc[SC_PLL2];
 	r24 = sc[SC_CLKMUX];
 
-    io_printf(stream, "Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
+	io_printf(stream, "[INFO] Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
 
 	FR1 = (r20 >> 16) & 3;
 	MS1 = (r20 >> 8) & 0x3F;
@@ -493,10 +493,10 @@ void changePLL(uint flag)
 #if(DEBUG_LEVEL>0)
 		char *stream;
 		if(sv->p2p_addr==0) stream = IO_STD; else stream = IO_BUF;
-		io_printf(stream, "System AHB and Router is set to PLL2\n");
-		io_printf(stream, "System AHB and Router divisor will be changed to 4\n");
-		io_printf(stream, "SDRAM divisor will be change to 2\n");
-		io_printf(stream, "PLL-2 will be set to 520MHz\n");
+		io_printf(stream, "[INFO] System AHB and Router is set to PLL2\n");
+		io_printf(stream, "[INFO] System AHB and Router divisor will be changed to 4\n");
+		io_printf(stream, "[INFO] SDRAM divisor will be change to 2\n");
+		io_printf(stream, "[INFO] PLL-2 will be set to 520MHz\n");
 #endif
         // the System AHB
         r24 &= 0xFF0FFFFF; //clear "Sdiv" and "Sys"
@@ -515,7 +515,7 @@ void changePLL(uint flag)
         sc[SC_CLKMUX] = r24;
 
 #if(DEBUG_LEVEL>0)
-		io_printf(stream, "PLL-2 will be set to 520MHz\n");
+		io_printf(stream, "[INFO] PLL-2 will be set to 520MHz\n");
 #endif
         r21 = sc[SC_PLL2];
         r21 &= 0xFFFFC0C0;            // apply masking at MS and NS

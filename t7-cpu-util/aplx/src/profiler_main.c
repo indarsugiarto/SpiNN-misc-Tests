@@ -32,9 +32,9 @@ void c_main ()
   sanityCheck();        // Since some features require strict conditions
   init_app();
   if(sv->p2p_addr==0)
-	io_printf(IO_STD, "Profiler-%d is ready!\n", my_pID);
+	io_printf(IO_STD, "[INFO] Profiler-%d is ready!\n", my_pID);
   else
-	io_printf(IO_BUF, "Profiler-%d is ready!\n", my_pID);
+	io_printf(IO_BUF, "[INFO] Profiler-%d is ready!\n", my_pID);
   spin1_start(SYNC_NOWAIT);
 }
 
