@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# Let's see, how much power is consumed when running spinnaker core at 100MHz
+# rtr and ahb are kept normal
+# Assuming SPINN_DIRS is already defined
+# Also, make sure that the raspberry server is running
+# To get cleaner result, run the run1chopt for the server
+
+# This script just for bank_A
+
+# first, run the power logger on mode 2 (fastest)
+echo "[INFO] Loading pwrLogger..."
+mode=2
+./pwrLogger_cli.py -i 10.99.192.101 -p 30001 -m $mode &
+
+echo
+echo "[INFO] Prepare SpiNN-4..."
+# prepare the machine
+ybug spin5 -bmp bmp << EOF
+power off
+sleep 2
+power on
+sleep 4
+boot scamp-release-version.boot spin5-no-wdog.conf
+sleep 2
+app_load ../aplx/bin/profiler.aplx all 1 255
+sleep 2
+app_sig all 255 sync0
+EOF
+
+echo
+echo "[INFO] Running at 100MHz..."
+# then ask the profiler to go for 100MHy
+./test_cpu_bankA.py 100 130 130
+
+# then sleep form 30 seconds
+sleep 30
+
+echo
+echo "[INFO] Running at max speed..."
+# then go maximum
+./test_cpu_bankA.py 255 173 173
+
+# then sleep again for 30 seconds
+sleep 30
+
+echo
+echo "[INFO] Back to normal frequencies..."
+# finally ask the profiler to go to normal mode
+./test_cpu_bankA.py 200 130 130
+
+# sleep for a while
+sleep 10
+
+# tell profiler to stop
+./test_stop 192.168.240.1
+
+echo
+echo "[INFO] Powering-off SpiNN-4..."
+# and power off the machine
+ybug spin5 -bmp bmp << EOF
+app_stop 255
+power off
+EOF
+
+# finally, terminate pwrLogger_cli
+kill -9 `ps aux | grep pwrLogger_cli.py -m 1 | awk '{print $2}'`
+
+echo
+echo "[INFO] done!"
+
+

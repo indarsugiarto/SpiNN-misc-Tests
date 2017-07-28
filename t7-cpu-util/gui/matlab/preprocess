@@ -1,0 +1,9 @@
+#!/bin/bash
+if [ -z $1 ]; then
+    exit -1
+fi
+ln=`wc -l $1 | awk '{print $1}'`
+lm=`expr $ln - 1`
+head -n $lm $1 > result.tmp
+mv -f result.tmp $1
+

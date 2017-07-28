@@ -83,7 +83,7 @@ class cLogger(QtCore.QObject):
         cmd = "mkdir -p {}".format(LOG_DIR)
         os.system(cmd)
         if self.logName is None:
-            self.fname = LOG_DIR + time.strftime("%b_%d_%Y-%H.%M.%S", time.gmtime()) + ".log"
+            self.fname = LOG_DIR + 'cpu_' + time.strftime("%b_%d_%Y-%H.%M.%S", time.gmtime()) + ".log"
         else:
             if self.logName.find(".log") == -1:
                 self.logName += ".log"

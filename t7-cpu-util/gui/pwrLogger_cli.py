@@ -1,0 +1,1 @@
+/local/new_home/indi/Projects/raspi/qReadP.withTCP/gui/pwrLogger_cli.py
