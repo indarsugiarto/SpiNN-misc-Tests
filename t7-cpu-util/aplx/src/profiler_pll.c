@@ -303,33 +303,6 @@ uchar readFreq(uchar *fAHB, uchar *fRTR)
 void showPLLinfo(uint output, uint arg1)
 {
 	char *stream = output==0?IO_STD:IO_BUF;
-	/*
-	r20 = sc[SC_PLL1];
-	r21 = sc[SC_PLL2];
-	r24 = sc[SC_CLKMUX];
-
-	//io_printf(stream, "[INFO] Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
-
-	FR1 = (r20 >> 16) & 3;
-	MS1 = (r20 >> 8) & 0x3F;
-	NS1 = r20 & 0x3F;
-	FR2 = (r21 >> 16) & 3;
-	MS2 = (r21 >> 8) & 0x3F;
-	NS2 = r21 & 0x3F;
-
-	Sdiv = ((r24 >> 22) & 3) + 1;
-	Sys_sel = (r24 >> 20) & 3;
-	Rdiv = ((r24 >> 17) & 3) + 1;
-	Rtr_sel = (r24 >> 15) & 3;
-	Mdiv = ((r24 >> 12) & 3) + 1;
-	Mem_sel = (r24 >> 10) & 3;
-	Bdiv = ((r24 >> 7) & 3) + 1;
-	Pb = (r24 >> 5) & 3;
-	Adiv = ((r24 >> 2) & 3) + 1;
-	Pa = r24 & 3;
-	*/
-
-
 
 	io_printf(stream, "************* CLOCK INFORMATION **************\n");
 	io_printf(stream, "Reading sark library...\n");
@@ -509,7 +482,7 @@ void changePLL(uint flag)
            Mem[1:0]     11:10
 
          ***********************/
-#if(DEBUG_LEVEL>0)
+#if(DEBUG_LEVEL>2)
 		char *stream;
 		if(sv->p2p_addr==0) stream = IO_STD; else stream = IO_BUF;
 		io_printf(stream, "[INFO] System AHB and Router is set to PLL2\n");
@@ -533,9 +506,6 @@ void changePLL(uint flag)
         //r24 |= (0x2 << 10); // set Mdiv = 1 and Mem = 2
         sc[SC_CLKMUX] = r24;
 
-#if(DEBUG_LEVEL>0)
-		io_printf(stream, "[INFO] PLL-2 will be set to 520MHz\n");
-#endif
         r21 = sc[SC_PLL2];
         r21 &= 0xFFFFC0C0;            // apply masking at MS and NS
         r21 |= 52;                    // apply NS

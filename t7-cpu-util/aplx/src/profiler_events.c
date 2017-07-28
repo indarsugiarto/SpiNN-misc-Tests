@@ -60,6 +60,8 @@ void init_Handlers()
 
 /* collectData is a USER_EVENT triggerd by hSlowTimer in profiler_cpuload.c
  * */
+uchar virt_cpu_idle_cntr[18];
+uchar virt_cpu;
 void collectData(uint None, uint Unused)
 {
 	/*
@@ -68,9 +70,14 @@ void collectData(uint None, uint Unused)
 		io_printf(IO_STD, "trig!\n");
 #endif
 */
-
+	// convert from phys to virt cpu
+	for(uint i=0; i<18; i++) {
+		virt_cpu = sv->p2v_map[i];	// the the virtual cpu id
+		virt_cpu_idle_cntr[virt_cpu] = stored_cpu_idle_cntr[i];
+	}
 	sark_mem_cpy((void *)&reportMsg.cmd_rc, (void *)&myProfile, sizeof(pro_info_t));
-	sark_mem_cpy((void *)reportMsg.data, (void *)stored_cpu_idle_cntr, 18);
+	//sark_mem_cpy((void *)reportMsg.data, (void *)stored_cpu_idle_cntr, 18);
+	sark_mem_cpy((void *)reportMsg.data, (void *)virt_cpu_idle_cntr, 18);
 #if(DEBUG_LEVEL>2)
 	if(sv->p2p_addr==0) {
 		if(streaming==FALSE)
@@ -110,7 +117,7 @@ void hMCPL(uint key, uint payload)
 void hSDP(uint mailbox, uint port)
 {
      sdp_msg_t *msg = (sdp_msg_t *) mailbox;
-#if(DEBUG_LEVEL>0)
+#if(DEBUG_LEVEL>2)
 	io_printf(IO_STD, "[INFO] sdp on port-%d\n", port);
 #endif
     // use DEF_HOST_SDP_PORT for communication with the host via eth
@@ -137,12 +144,14 @@ void hSDP(uint mailbox, uint port)
             // seq structure: byte-1 component, byte-0 frequency
 			PLL_PART comp = (PLL_PART)(msg->seq >> 8);
             uint f = msg->seq & 0xFF;
-#if(DEBUG_LEVEL>0)
+#if(DEBUG_LEVEL>2)
 			io_printf(IO_STD, "[INFO] Request for comp-%d with f=%d\n", comp, f);
 #endif
             changeFreq(comp, f);
             break;
 			}
+		case HOST_TELL_STOP:
+			spin1_exit(0);
 		}
 	}
     // use DEF_INTERNAL_SDP_PORT for internal (inter-chip) communication
@@ -152,7 +161,10 @@ void hSDP(uint mailbox, uint port)
 			//hostIP = msg->arg1;
             spin1_schedule_callback(initIPTag, msg->arg1, 0, SCHEDULED_PRIORITY_VAL);
         }
-    }
+		// root profiler might send this:
+		if(msg->cmd_rc==HOST_TELL_STOP)
+			spin1_exit(0);
+	}
     spin1_msg_free (msg);
 }
 

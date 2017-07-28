@@ -36,27 +36,50 @@ static uchar profIDTable[lnIDTable][wdIDTable] = {
  *    can interpret the incoming profiler data correctly.
 */
 
-ushort *pID_list;   // profiler ID list
+#define PID_LIST_MEM_LOC_DTCM 0
+#define PID_LIST_MEM_LOC_SDRM 1
+ushort *pID_list;   // profiler chip_list list, hByte=x, lByte=y
 ushort nChips;		// number of chips in the system
+uchar mem_type;     // 0=dtcm, 2=sdram (sysram is too small -> 32KB)
+					// for a single or three board system, DTCM is used
+					// otherwise, SDRAM will be used
 
 void generateProfilerID()
 {
 	uint r;
 	uint dest;
+	ushort szX = sv->p2p_dims > 8;
+	ushort szY = sv->p2p_dims & 0xF;
+	ushort dim = szX * szY;
+	if(dim <= 256)
+		mem_type = PID_LIST_MEM_LOC_DTCM;
+	else
+		mem_type = PID_LIST_MEM_LOC_SDRM;
 
 	// only root needs complete list of ID
 	if(sv->p2p_addr == 0) {
-		// first, allocate ID-list buffer in sdram
-		pID_list = sark_xalloc(sv->sdram_heap, 65536, 0, ALLOC_LOCK);
+
+		// is there any way we can interact with scamp to read how chip in
+		// the system? Yes, use sv->p2p_dims
+
+		// first, allocate ID-list buffer in memory
+		switch (mem_type) {
+		case PID_LIST_MEM_LOC_DTCM:
+			pID_list = sark_alloc(dim, sizeof(uint));
+			break;
+		case PID_LIST_MEM_LOC_SDRM:
+			pID_list = sark_xalloc(sv->sdram_heap, dim*sizeof(uint), 0, ALLOC_LOCK);
+			break;
+		}
 
 		my_pID = 0;
+		nChips = 1; // the root profiler
 		pID_list[0] = sv->p2p_addr;
 		// the following is a slow process
-		nChips = 1; // the root profiler
 		for(r=1; r<=0xFFFF; r++) {
 			dest = rtr_p2p_get(r);
 			if(dest != 6) {
-				pID_list[nChips] = r; // r can be extracted using CHIP_X() CHIP_Y()
+				pID_list[nChips] = (ushort)r; // r can be extracted using CHIP_X() CHIP_Y()
 				nChips++;
 			}
 		}
@@ -112,6 +135,28 @@ void generateProfilerID()
 	*/
 }
 
+void bCastStopMsg()
+{
+	// prepare sdp message
+	sdp_msg_t bCast;
+	bCast.flags = 7;
+	bCast.tag = 0;
+	bCast.srce_port = (DEF_INTERNAL_SDP_PORT << 5) + DEF_PROFILER_CORE;
+	bCast.srce_addr = sv->p2p_addr;
+	bCast.dest_port = bCast.srce_port;
+	bCast.cmd_rc = HOST_TELL_STOP;
+	bCast.length = sizeof(sdp_hdr_t) + sizeof(cmd_hdr_t);
+	for(uint i=1; i<nChips; i++) {
+		bCast.dest_addr = pID_list[i];
+		spin1_send_sdp_msg(&bCast, DEF_TIMEOUT);
+		sark_delay_us(500); // to avoid RTE
+	}
+	// then release the pID_list
+	if(mem_type==PID_LIST_MEM_LOC_DTCM)
+		sark_free(pID_list);
+	else
+		sark_xfree(sv->sdram_heap, pID_list, ALLOC_LOCK);
+}
 
 uchar getNumActiveCores()
 {

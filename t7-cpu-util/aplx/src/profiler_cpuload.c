@@ -23,6 +23,7 @@ INT_HANDLER hSlowTimer (void)
   //try this:
   vic[VIC_SOFT_CLR] = 1 << SLOW_CLK_INT;
 
+#if(DEBUG_LEVEL>2)
   if(tick_cnt < 100) {
 	  if(++myTick >= 10000) {
 		//if run too long, it make RTE:
@@ -31,7 +32,7 @@ INT_HANDLER hSlowTimer (void)
 		myTick = 0;
 	  }
   }
-
+#else
   if(++idle_cntr_cntr>100) {
 	// copy to stored_cpu_idle_cntr
 	// sark_mem_cpy(stored_cpu_idle_cntr, running_cpu_idle_cntr, 18);
@@ -69,7 +70,7 @@ INT_HANDLER hSlowTimer (void)
 		running_cpu_idle_cntr[i] += (r25 >> i) & 1;
   }
 
-
+#endif
   vic[VIC_VADDR] = (uint) vic;			// Tell VIC we're done
 }
 
@@ -142,8 +143,21 @@ void init_idle_cntr()
 
 }
 
+uint _vic;
+
 // startProfiling is scheduled in the c_main and waits synchronization signal
 void startProfiling(uint null, uint nill)
 {
+	_vic = vic[VIC_ENABLE];
 	vic[VIC_ENABLE] = 1 << SLOW_CLK_INT;
+}
+
+// startProfiling is scheduled in the c_main and waits synchronization signal
+extern void bCastStopMsg();	// this is defined in profiler_util.c
+void stopProfiling(uint null, uint nill)
+{
+	vic[VIC_ENABLE] = _vic;
+	// then tell the rest of the system to stop as well
+	if(sv->p2p_addr==0)
+		bCastStopMsg();
 }

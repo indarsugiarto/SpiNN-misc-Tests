@@ -100,8 +100,8 @@
 #define HOST_REQ_REVERT_PLL			3
 #define HOST_SET_FREQ_VALUE			4		// Note: HOST_SET_FREQ_VALUE assumes that CPUs use PLL1,
 											// if this is not the case, then use HOST_SET_CHANGE_PLL
-#define HOST_REQ_PROFILER_STREAM		5		// host send this to a particular profiler to start streaming
-
+#define HOST_REQ_PROFILER_STREAM	5		// host send this to a particular profiler to start streaming
+#define HOST_TELL_STOP				6
 
 
 /*--------------------- Reporting Data Structure -------------------------*/
@@ -141,6 +141,8 @@ uchar running_cpu_idle_cntr[18];
 uchar stored_cpu_idle_cntr[18];
 uint idle_cntr_cntr; //master counter that count up to 100
 void init_idle_cntr();
+void startProfiling(uint null, uint nill);
+void stopProfiling(uint null, uint nill);
 
 
 /*==================== Temperature-related Functions =====================*/
@@ -159,7 +161,7 @@ void sanityCheck();
 void generateProfilerID();
 void print_cntr(uint null, uint nill);
 uchar getNumActiveCores();
-void startProfiling(uint null, uint nill);
+
 
 /*********************** Logging mechanism ****************************
  * For logging, the host may send a streaming request to a certain
