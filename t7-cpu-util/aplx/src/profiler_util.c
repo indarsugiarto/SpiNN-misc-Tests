@@ -61,7 +61,7 @@ void generateProfilerID()
 			}
 		}
 
-#if(DEBUG_LEVEL>0)
+#if(DEBUG_LEVEL>2)
 		io_printf(IO_STD, "[INFO] Found %d-chips in the system\n", nChips);
 		ushort XY;
 		for(ushort i=0; i<nChips; i++) {

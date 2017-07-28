@@ -35,6 +35,9 @@ void c_main ()
 	io_printf(IO_STD, "[INFO] Profiler-%d is ready!\n", my_pID);
   else
 	io_printf(IO_BUF, "[INFO] Profiler-%d is ready!\n", my_pID);
-  spin1_start(SYNC_NOWAIT);
+
+  // wait for synchronization
+  spin1_schedule_callback(startProfiling, 0, 0, SCHEDULED_PRIORITY_VAL);
+  spin1_start(SYNC_WAIT);
 }
 

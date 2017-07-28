@@ -60,18 +60,18 @@ if __name__=="__main__":
         dp = DEF_HOST_SDP_PORT
         dc = DEF_PROFILER_CORE
         # first, set cpu
-        print "Requesting maximum frequency (255) for cpu..."
-        seq = 255
+        print "Requesting maximum frequency (200) for cpu..."
+        seq = 200
         sendSDP(ip,7, 0, dp, dc, dax, day, cmd_rc, seq, 0, 0, 0, None)
         time.sleep(1)
         # second, the AHB
-        print "Requesting maximum frequency (173) for ahb..."
-        seq = (PLL_AHB << 8) + 173
+        print "Requesting maximum frequency (130) for ahb..."
+        seq = (PLL_AHB << 8) + 130
         sendSDP(ip,7, 0, dp, dc, dax, day, cmd_rc, seq, 0, 0, 0, None)
         time.sleep(1)
         # last, the RTR
-        print "Requesting maximum frequency (173) for rtr..."
-        seq = (PLL_RTR << 8) + 173
+        print "Requesting maximum frequency (130) for rtr..."
+        seq = (PLL_RTR << 8) + 130
         sendSDP(ip,7, 0, dp, dc, dax, day, cmd_rc, seq, 0, 0, 0, None)
         print "Done!"
 

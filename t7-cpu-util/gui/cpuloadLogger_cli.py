@@ -23,8 +23,9 @@ HOST_SET_FREQ_VALUE = 4		#// Note: HOST_SET_FREQ_VALUE assumes that CPUs use PLL
 HOST_REQ_PROFILER_STREAM = 5		#// host send this to a particular profiler to start streaming
 
 class cLogger(QtCore.QObject):
-    def __init__(self, xpos, ypos, port, logName=None, parent=None):
+    def __init__(self, xpos, ypos, ip, port, logName=None, parent=None):
         super(cLogger, self).__init__(parent)
+        self.ip = ip
         self.port = port
         self.logName = logName
         self.xpos = xpos
@@ -35,16 +36,13 @@ class cLogger(QtCore.QObject):
 
     def setupUDP(self):
         self.SpiNNSock = QtNetwork.QUdpSocket(self)
-        str = "Try opening port-{} for receiving SpiNNaker Data...".format(self.port)
-        print str,
+        print "Try opening port-{} for receiving SpiNNaker Data...".format(self.port),
         result = self.SpiNNSock.bind(self.port)
         if result is False:
-            str = 'failed! Cannot open UDP port-{}'.format(self.port)
-            print str
+            print 'failed! Cannot open UDP port-{}!'.format(self.port)
             self.isReady = False
         else:
-            str = "done!"
-            print str
+            print "done!"
             self.SpiNNSock.readyRead.connect(self.readSpiNN)
             self.SpiNNSock.error.connect(self.udpError)
 
@@ -77,7 +75,7 @@ class cLogger(QtCore.QObject):
         part_2 = '18B'
         self.fmt = '<'+sdp_hdr+part_1+part_2
         self.szData = struct.calcsize(self.fmt)
-        print "Require {} data".format(self.szData)
+        print "Require {}-byte data for each row".format(self.szData)
         self.isStarted = True
 
         # prepare log file
@@ -130,7 +128,7 @@ class cLogger(QtCore.QObject):
             sdp = pad + hdr + scp
 
         CmdSock = QtNetwork.QUdpSocket()
-        CmdSock.writeDatagram(sdp, QtNetwork.QHostAddress(DEF_MACHINE), DEF_SEND_PORT)
+        CmdSock.writeDatagram(sdp, QtNetwork.QHostAddress(self.ip), DEF_SEND_PORT)
         return sdp
 
     @QtCore.pyqtSlot()
@@ -146,9 +144,9 @@ class cLogger(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def readSpiNN(self):
-        while self.SpiNNSock.bytesAvailable() >= self.szData:
-            # read as bytearray
-            ba = self.tcp.read(self.szData)
+
+        while self.SpiNNSock.pendingDatagramSize() >= self.szData:
+            ba, host, port = self.SpiNNSock.readDatagram(self.szData)
             f = [0 for _ in range(3)]
             c = [0 for _ in range(18)]
 
@@ -159,7 +157,7 @@ class cLogger(QtCore.QObject):
             s = ''
             for i in range(3):
                 s += '%d,' % f[i]
-            s += '%d,%d,%d,%d' % nA,temp1,temp3,sdram
+            s += '%d,%d,%d,%d' % (nA,temp1,temp3,sdram)
             for i in range(18):
                 s += '%d,' % c[i]
             s += '%lf\n' % time.time()
@@ -168,6 +166,7 @@ class cLogger(QtCore.QObject):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='CPU Load Logger')
+    parser.add_argument('-i', '--ip', type=str, default=DEF_MACHINE, help='SpiNNaker ip address')
     parser.add_argument('-p', '--port', type=int, default=DEF_REPORT_PORT, help='UDP port to open')
     parser.add_argument('-l', '--logname', type=str, help='Log filename')
     parser.add_argument("xpos", type=int, help="Chip's x-coordinate")
@@ -176,7 +175,7 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     app = Qt.QCoreApplication(sys.argv)
-    logger = cLogger(args.xpos, args.ypos, args.port, args.logname, app)
+    logger = cLogger(args.xpos, args.ypos, args.ip, args.port, args.logname, app)
     if logger.isReady is True:
         logger.start()
     else:

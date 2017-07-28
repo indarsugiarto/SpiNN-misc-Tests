@@ -2,22 +2,31 @@
 
 APLX=profiler.aplx
 BIN_DIR=../bin
-make
 
 if [ $1=="-c" ]; then
+  echo "****************************************************"
   echo "[INFO] Cleaning previous build..."
+  echo "----------------------------------------------------"
   make clean
 fi
-
+echo
+echo "****************************************************"
+echo "[INFO] Start compiling..."
+echo "----------------------------------------------------"
 make
+echo
 
 if [ -e $APLX ]; then
   if [ ! -d $BIN_DIR ]; then
+    echo "****************************************************"
     echo "[INFO] Creating bin directory..."
+    echo "----------------------------------------------------"
     mkdir -p $BIN_DIR
   fi
   echo
+  echo "****************************************************"
   echo "[INFO] moving aplx to "$BIN_DIR
+  echo "----------------------------------------------------"
   mv -f $APLX $BIN_DIR/
   echo "[INFO] result:"
   ls -AlF $BIN_DIR/$APLX

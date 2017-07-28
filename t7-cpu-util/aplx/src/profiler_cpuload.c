@@ -10,44 +10,66 @@
 #include "profiler.h"
 
 // the following two variables are just for debugging
-uint tick = 0;
+uint myTick = 0;
 uint tick_cnt = 0;
 
 INT_HANDLER hSlowTimer (void)
 {
   uint r25, i;
 
-  dma[DMA_GCTL] = 0x7FFFFFFF; // clear bit[31] of dma GCTL
+  // found problem here: solution &=, not =
+  dma[DMA_GCTL] &= 0x7FFFFFFF; // clear bit[31] of dma GCTL
 
-#if(DEBUG_LEVEL>0)
-  if(sv->p2p_addr==0) {
-	  tick++;
-	  if(tick >= 10000) {
+  //try this:
+  vic[VIC_SOFT_CLR] = 1 << SLOW_CLK_INT;
+
+  if(tick_cnt < 100) {
+	  if(++myTick >= 10000) {
 		//if run too long, it make RTE:
-		io_printf(IO_BUF, "tick-%d\n", tick_cnt);
-		tick = 0; tick_cnt++;
+		io_printf(IO_BUF, "tick-%d, nAct=%d, temp=%d, fcpu=%dMHz\n",
+				  tick_cnt++, myProfile.nActive, myProfile.temp3, myProfile.cpu_freq);
+		myTick = 0;
 	  }
   }
-#endif
+
   if(++idle_cntr_cntr>100) {
-    // copy to stored_cpu_idle_cntr
-    // sark_mem_cpy(stored_cpu_idle_cntr, running_cpu_idle_cntr, 18);
-    // clear running_cpu_idle_cntr and idle_cntr_cntr
-    for(int i=0; i<18; i++) {
-      stored_cpu_idle_cntr[i] = 100 - running_cpu_idle_cntr[i];
-      running_cpu_idle_cntr[i] = 0;
-    }
-    idle_cntr_cntr = 0;
-    // trigger software interrupt for the main profiler loop
-    // the software interrupt is handled via user event
-    spin1_trigger_user_event(0, 0);
+	// copy to stored_cpu_idle_cntr
+	// sark_mem_cpy(stored_cpu_idle_cntr, running_cpu_idle_cntr, 18);
+	// clear running_cpu_idle_cntr and idle_cntr_cntr
+	for(int i=0; i<18; i++) {
+	  stored_cpu_idle_cntr[i] = 100 - running_cpu_idle_cntr[i];
+	  running_cpu_idle_cntr[i] = 0;
+	}
+	idle_cntr_cntr = 0;
+	// trigger software interrupt for the main profiler loop
+	// the software interrupt is handled via user event
+	spin1_trigger_user_event(0, 0);
+	//spin1_schedule_callback(collectData, 0, 0, SCHEDULED_PRIORITY_VAL);
   }
   else {
-    // detect idle state of all cores
-    r25 = sc[SC_SLEEP];
-    for(i=0; i<18; i++)
-        running_cpu_idle_cntr[i] += (r25 >> i) & 1;
+	// let's split the work:
+	// when counter = 94, read temperature
+	if(idle_cntr_cntr==94) {
+	  myProfile.temp3 = readTemp();
+	  myProfile.temp1 = tempVal[0];
+	}
+
+	// when counter = 96, read frequency
+	// by calling readFreq, all parameters in pll are read (eg. Sfreq, Sdiv, etc.)
+	if(idle_cntr_cntr==96)
+		myProfile.cpu_freq = readFreq(&myProfile.ahb_freq, &myProfile.rtr_freq);
+
+	// when counter = 98, read nActiveCores
+	if(idle_cntr_cntr==98)
+	  myProfile.nActive = getNumActiveCores();
+
+	// detect idle state of all cores
+	r25 = sc[SC_SLEEP];
+	for(i=0; i<18; i++)
+		running_cpu_idle_cntr[i] += (r25 >> i) & 1;
   }
+
+
   vic[VIC_VADDR] = (uint) vic;			// Tell VIC we're done
 }
 
@@ -102,7 +124,26 @@ void init_idle_cntr()
 	}
 	idle_cntr_cntr = 0; //master counter that count up to 100
 	//sark_vic_set (SLOT_FIQ, SLOW_CLK_INT, 1, hSlowTimer);
-	sark_vic_set (SLOT_10, SLOW_CLK_INT, 1, hSlowTimer);
-    spin1_callback_on(USER_EVENT, print_cntr, 1);
+	//sark_vic_set (SLOT_10, SLOW_CLK_INT, 1, hSlowTimer);
+
+	if(vic[VIC_SELECT]) {
+#if(DEBUG_LEVEL>2)
+		io_printf(IO_BUF, "VIC_SELECT = 0x%x\n", vic[VIC_SELECT]);
+		io_printf(IO_BUF, "Using IRQ for idle-cntr\n");
+#endif
+		sark_vic_set (SLOT_10, SLOW_CLK_INT, 0, hSlowTimer); // don't enable it yet? wait for synchronization
+	}
+	else {
+#if(DEBUG_LEVEL>2)
+		io_printf(IO_BUF, "Using FIQ for idle-cntr\n");
+#endif
+		sark_vic_set (SLOT_FIQ, SLOW_CLK_INT, 0, hSlowTimer);
+	}
+
 }
 
+// startProfiling is scheduled in the c_main and waits synchronization signal
+void startProfiling(uint null, uint nill)
+{
+	vic[VIC_ENABLE] = 1 << SLOW_CLK_INT;
+}

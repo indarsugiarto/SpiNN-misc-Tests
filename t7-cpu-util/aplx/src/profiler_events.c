@@ -62,13 +62,32 @@ void init_Handlers()
  * */
 void collectData(uint None, uint Unused)
 {
-	myProfile.cpu_freq = readFreq(&myProfile.ahb_freq, &myProfile.rtr_freq);
-	myProfile.nActive = getNumActiveCores();
-	myProfile.temp3 = readTemp();
-	myProfile.temp1 = tempVal[0];
+	/*
+#if(DEBUG_LEVEL>0)
+	if(sv->p2p_addr==0)
+		io_printf(IO_STD, "trig!\n");
+#endif
+*/
+
 	sark_mem_cpy((void *)&reportMsg.cmd_rc, (void *)&myProfile, sizeof(pro_info_t));
 	sark_mem_cpy((void *)reportMsg.data, (void *)stored_cpu_idle_cntr, 18);
+#if(DEBUG_LEVEL>2)
+	if(sv->p2p_addr==0) {
+		if(streaming==FALSE)
+			io_printf(IO_STD, "no streaming!\n");
+		else
+			io_printf(IO_STD, "do streaming!\n");
+	}
+	return;
+#endif
+
 	if(streaming==FALSE) return;
+/*
+#if(DEBUG_LEVEL>0)
+	io_printf(IO_BUF, "Send!\n");
+	return;
+#endif
+*/
 	spin1_send_sdp_msg (&reportMsg, DEF_TIMEOUT);
 }
 
@@ -91,14 +110,16 @@ void hMCPL(uint key, uint payload)
 void hSDP(uint mailbox, uint port)
 {
      sdp_msg_t *msg = (sdp_msg_t *) mailbox;
-#if(DEBUG_LEVEL>2)
-	io_printf(IO_STD, "[INFO] incoming sdp on port-%d\n", port);
+#if(DEBUG_LEVEL>0)
+	io_printf(IO_STD, "[INFO] sdp on port-%d\n", port);
 #endif
     // use DEF_HOST_SDP_PORT for communication with the host via eth
     if(port==DEF_HOST_SDP_PORT) {
         switch(msg->cmd_rc) {
         case HOST_REQ_PLL_INFO:
-            spin1_schedule_callback(showPLLinfo, 0, 0, SCHEDULED_PRIORITY_VAL);
+			//spin1_schedule_callback(showPLLinfo, 1, 0, SCHEDULED_PRIORITY_VAL);
+			//io_printf(IO_STD, "[INFO] HOST_REQ_PLL_INFO..\n");
+			showPLLinfo(0, 0);
             break;
         case HOST_REQ_PROFILER_STREAM:
 			// then use seq to determine: 0 stop, 1 start
@@ -192,6 +213,17 @@ void init_sdp_container()
     reportMsg.srce_addr = sv->p2p_addr;
     reportMsg.length = sizeof(sdp_hdr_t) + sizeof(cmd_hdr_t) + (18*sizeof(uchar));
 
+#if(DEBUG_LEVEL>2)
+	if(sv->p2p_addr==0) {
+		io_printf(IO_STD, "sizeof(pro_info_t) = %d\n", sizeof(pro_info_t));
+		io_printf(IO_STD, "report.dest_port = 0x%x\n", reportMsg.dest_port);
+		io_printf(IO_STD, "report.dest_addr = 0x%x\n", reportMsg.dest_addr);
+		io_printf(IO_STD, "report.srce_port = 0x%x\n", reportMsg.srce_port);
+		io_printf(IO_STD, "report.srce_addr = 0x%x\n", reportMsg.srce_addr);
+		io_printf(IO_STD, "total paket length = %d\n", reportMsg.length);
+	}
+#endif
+
     // prepare IPtagging mechanism, only if I'm root
 	if(sv->p2p_addr==0) {
 		iptag.flags = 0x87;	// initially needed for iptag triggering
@@ -212,7 +244,7 @@ void initiateIPTagReading(uint arg1, uint arg2)
     // only root profiler needs this
     // the result should be read through hSDP
     if(sv->p2p_addr==0) {
-#if(DEBUG_LEVEL>0)
+#if(DEBUG_LEVEL>2)
 		io_printf(IO_STD, "[INFO] Initiate iptagging...\n");
 #endif
         spin1_send_sdp_msg(&iptag, DEF_TIMEOUT);
@@ -224,7 +256,7 @@ void initIPTag(uint hostIP, uint Unused)
 {
     // only chip <0,0>
     if(sv->p2p_addr==0) {
-#if(DEBUG_LEVEL>0)
+#if(DEBUG_LEVEL>2)
 		io_printf(IO_STD, "[INFO] Setting iptag-%d for port-%d\n",
 				  DEF_REPORT_TAG, DEF_REPORT_PORT);
 #endif
@@ -235,7 +267,7 @@ void initIPTag(uint hostIP, uint Unused)
         //iptag.arg3 = SDP_DEF_HOST_IP;
         iptag.arg3 = hostIP;
         spin1_send_sdp_msg(&iptag, DEF_TIMEOUT);
-#if(DEBUG_LEVEL>0)
+#if(DEBUG_LEVEL>2)
 		io_printf(IO_STD, "[INFO] Setting iptag-%d for port-%d\n",
 				  DEF_ERR_INFO_TAG, DEF_ERR_INFO_PORT);
 #endif

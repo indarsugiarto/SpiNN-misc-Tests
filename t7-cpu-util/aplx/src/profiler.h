@@ -159,6 +159,7 @@ void sanityCheck();
 void generateProfilerID();
 void print_cntr(uint null, uint nill);
 uchar getNumActiveCores();
+void startProfiling(uint null, uint nill);
 
 /*********************** Logging mechanism ****************************
  * For logging, the host may send a streaming request to a certain

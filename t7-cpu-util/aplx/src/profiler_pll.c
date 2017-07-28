@@ -262,34 +262,6 @@ uchar readFreq(uchar *fAHB, uchar *fRTR)
 	r21 = sc[SC_PLL2];
 	r24 = sc[SC_CLKMUX];
 
-	Sdiv = ((r24 >> 22) & 3) + 1;
-	Sys_sel = (r24 >> 20) & 3;
-	Rdiv = ((r24 >> 17) & 3) + 1;
-	Rtr_sel = (r24 >> 15) & 3;
-	Bdiv = ((r24 >> 7) & 3) + 1;
-	Pb = (r24 >> 5) & 3;
-
-	Sfreq = getFreq(Sys_sel, Sdiv);
-	Rfreq = getFreq(Rtr_sel, Rdiv);
-	Bfreq = getFreq(Pb, Bdiv);
-	*fAHB = (uchar)Sfreq;
-	*fRTR = (uchar)Rfreq;
-	return (uchar)Bfreq;
-}
-
-/* showPLLinfo()
- * /param stream, 0=IO_STD, others=IO_BUF
- *
- * */
-void showPLLinfo(uint output, uint arg1)
-{
-	char *stream = output==0?IO_STD:IO_BUF;
-	r20 = sc[SC_PLL1];
-	r21 = sc[SC_PLL2];
-	r24 = sc[SC_CLKMUX];
-
-	io_printf(stream, "[INFO] Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
-
 	FR1 = (r20 >> 16) & 3;
 	MS1 = (r20 >> 8) & 0x3F;
 	NS1 = r20 & 0x3F;
@@ -310,9 +282,54 @@ void showPLLinfo(uint output, uint arg1)
 
 	Sfreq = getFreq(Sys_sel, Sdiv);
 	Rfreq = getFreq(Rtr_sel, Rdiv);
-    Mfreq = getFreq(Mem_sel, Mdiv); Mfreq = Mfreq * REAL_CONST(0.5);
+	Mfreq = getFreq(Mem_sel, Mdiv) * REAL_CONST(0.5);
 	Bfreq = getFreq(Pb, Bdiv);
 	Afreq = getFreq(Pa, Adiv);
+
+	uchar fahb = (uchar)Sfreq;
+	uchar frtr = (uchar)Rfreq;
+	uchar fcpu = (uchar)Bfreq;
+
+	*fAHB = fahb;
+	*fRTR = frtr;
+	return fcpu;
+}
+
+/* showPLLinfo() just display information previously collected during hSlowTimer
+ * event handling.
+ * /param stream, 0=IO_STD, others=IO_BUF
+ *
+ * */
+void showPLLinfo(uint output, uint arg1)
+{
+	char *stream = output==0?IO_STD:IO_BUF;
+	/*
+	r20 = sc[SC_PLL1];
+	r21 = sc[SC_PLL2];
+	r24 = sc[SC_CLKMUX];
+
+	//io_printf(stream, "[INFO] Register content: r20=0x%x, r21=0x%x, r24=0x%x\n\n", r20, r21, r24);
+
+	FR1 = (r20 >> 16) & 3;
+	MS1 = (r20 >> 8) & 0x3F;
+	NS1 = r20 & 0x3F;
+	FR2 = (r21 >> 16) & 3;
+	MS2 = (r21 >> 8) & 0x3F;
+	NS2 = r21 & 0x3F;
+
+	Sdiv = ((r24 >> 22) & 3) + 1;
+	Sys_sel = (r24 >> 20) & 3;
+	Rdiv = ((r24 >> 17) & 3) + 1;
+	Rtr_sel = (r24 >> 15) & 3;
+	Mdiv = ((r24 >> 12) & 3) + 1;
+	Mem_sel = (r24 >> 10) & 3;
+	Bdiv = ((r24 >> 7) & 3) + 1;
+	Pb = (r24 >> 5) & 3;
+	Adiv = ((r24 >> 2) & 3) + 1;
+	Pa = r24 & 3;
+	*/
+
+
 
 	io_printf(stream, "************* CLOCK INFORMATION **************\n");
 	io_printf(stream, "Reading sark library...\n");
@@ -405,14 +422,16 @@ REAL getFreq(uchar sel, uchar dv)
 {
     REAL fSrc, num, denum, _dv_, val;
     _dv_ = dv;
-    switch(sel) {
+
+	switch(sel) {
     case 0: num = REAL_CONST(1.0); denum = REAL_CONST(1.0); break; // 10 MHz clk_in
     case 1: num = NS1; denum = MS1; break;
     case 2: num = NS2; denum = MS2; break;
     case 3: num = REAL_CONST(1.0); denum = REAL_CONST(4.0); break;
     }
     fSrc = REAL_CONST(10.0);
-    val = (fSrc * num) / (denum * _dv_);
+
+	val = (fSrc * num) / (denum * _dv_);
     //io_printf(IO_BUF, "ns = %u, ms = %u, fSrc = %k, num = %k, denum = %k, dv = %k, val = %k\n", ns, ms, fSrc, num, denum, dv, val);
     return val;
 }
